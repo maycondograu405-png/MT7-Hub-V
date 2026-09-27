@@ -1,5 +1,6 @@
 --========================================================--
---                     MT7 HUB V2.2                      --
+--                     MT7 HUB V2.3                       --
+--          PERFORMANCE / OTIMIZAÇÃO / FREE + PRO         --
 --========================================================--
 
 repeat task.wait() until game:IsLoaded()
@@ -9,17 +10,14 @@ local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 
 local Player = Players.LocalPlayer
 
---========================================================--
--- CONFIG
---========================================================--
+local VERSION = "V2.3"
 
 local PRO_URL =
     "https://raw.githubusercontent.com/maycondograu405-png/MT7-Hub-V/refs/heads/main/MT7PRO.lua"
-
-local MOON_IMAGE = "rbxassetid://7072719740"
 
 local VALID_KEYS = {
     ["MT-708090"] = true,
@@ -27,59 +25,79 @@ local VALID_KEYS = {
     ["MT-987654"] = true
 }
 
-local IsPRO = false
-local MoonEnabled = true
-local CurrentFPS = "Unlimited"
+local MOON_IMAGE = "rbxassetid://7072719740"
 
 --========================================================--
--- STATES
+-- ESTADOS
 --========================================================--
 
 local States = {
     AntiLag = false,
-    AntiTexture = false,
     FPSBoost = false,
-    AntiFreeze = false
+    AntiTexture = false,
+    AntiFreeze = false,
+    LowGraphics = false,
+    ParticleReduce = false,
+    LightingOptimize = false,
+    TerrainOptimize = false,
+    SmartFreeBoost = false
+}
+
+local Settings = {
+    FPS = 60,
+    Moon = true,
+    Scale = 1
+}
+
+local PRO = {
+    Verified = false,
+    Module = nil
 }
 
 local Original = {}
 
 --========================================================--
--- PROPERTY SYSTEM
+-- SALVAR / RESTAURAR PROPRIEDADES
 --========================================================--
 
-local function Save(Object, Property)
-    if not Object then
+local function Save(obj, property)
+    if not obj then
         return
     end
 
-    Original[Object] = Original[Object] or {}
+    if not Original[obj] then
+        Original[obj] = {}
+    end
 
-    if Original[Object][Property] == nil then
-        local Success, Value = pcall(function()
-            return Object[Property]
+    if Original[obj][property] == nil then
+        local ok, value = pcall(function()
+            return obj[property]
         end)
 
-        if Success then
-            Original[Object][Property] = Value
+        if ok then
+            Original[obj][property] = value
         end
     end
 end
 
-local function Set(Object, Property, Value)
-    Save(Object, Property)
+local function Set(obj, property, value)
+    if not obj then
+        return
+    end
+
+    Save(obj, property)
 
     pcall(function()
-        Object[Property] = Value
+        obj[property] = value
     end)
 end
 
 local function Restore()
-    for Object, Properties in pairs(Original) do
-        if Object and Object.Parent then
-            for Property, Value in pairs(Properties) do
+    for obj, properties in pairs(Original) do
+        if obj and obj.Parent then
+            for property, value in pairs(properties) do
                 pcall(function()
-                    Object[Property] = Value
+                    obj[property] = value
                 end)
             end
         end
@@ -87,273 +105,311 @@ local function Restore()
 end
 
 --========================================================--
--- FREE OPTIMIZATIONS
+-- FPS
 --========================================================--
 
-local function ApplyAntiLag()
-    if not States.AntiLag then
-        return
-    end
+local function SetFPS(value)
+    Settings.FPS = value
 
+    if type(setfpscap) == "function" then
+        pcall(function()
+            setfpscap(value)
+        end)
+    end
+end
+
+local function SetUnlimitedFPS()
+    Settings.FPS = 999
+
+    if type(setfpscap) == "function" then
+        pcall(function()
+            setfpscap(999)
+        end)
+    end
+end
+
+--========================================================--
+-- FREE: ANTI-LAG
+--========================================================--
+
+local function AntiLag()
     Set(Lighting, "GlobalShadows", false)
 
-    for _, Object in ipairs(Lighting:GetChildren()) do
+    for _, obj in ipairs(Lighting:GetChildren()) do
         pcall(function()
-            if Object:IsA("PostEffect") then
-                Set(Object, "Enabled", false)
+            if obj:IsA("PostEffect") then
+                Set(obj, "Enabled", false)
 
-            elseif Object:IsA("Atmosphere") then
-                Set(Object, "Density", 0)
-                Set(Object, "Haze", 0)
-                Set(Object, "Glare", 0)
+            elseif obj:IsA("Atmosphere") then
+                Set(obj, "Density", 0)
+                Set(obj, "Haze", 0)
+                Set(obj, "Glare", 0)
             end
         end)
     end
 end
 
-local function ApplyAntiTexture()
-    if not States.AntiTexture then
-        return
+--========================================================--
+-- FREE: FPS BOOST
+--========================================================--
+
+local function FPSBoost()
+    AntiLag()
+
+    local terrain = workspace:FindFirstChildOfClass("Terrain")
+
+    if terrain then
+        Set(terrain, "Decoration", false)
     end
 
-    for _, Object in ipairs(game:GetDescendants()) do
+    for _, obj in ipairs(game:GetDescendants()) do
         pcall(function()
-            if Object:IsA("Decal")
-            or Object:IsA("Texture") then
+            if obj:IsA("ParticleEmitter")
+                or obj:IsA("Trail")
+                or obj:IsA("Beam")
+                or obj:IsA("Smoke")
+                or obj:IsA("Fire")
+                or obj:IsA("Sparkles")
+                or obj:IsA("Highlight") then
 
-                Set(Object, "Transparency", 1)
-
-            elseif Object:IsA("SurfaceAppearance") then
-                Set(Object, "Enabled", false)
+                Set(obj, "Enabled", false)
             end
         end)
     end
 end
 
-local function ApplyFPSBoost()
-    if not States.FPSBoost then
-        return
-    end
+--========================================================--
+-- FREE: ANTI-TEXTURE
+--========================================================--
 
-    Set(Lighting, "GlobalShadows", false)
-
-    for _, Object in ipairs(game:GetDescendants()) do
+local function AntiTexture()
+    for _, obj in ipairs(game:GetDescendants()) do
         pcall(function()
-            if Object:IsA("ParticleEmitter")
-            or Object:IsA("Trail")
-            or Object:IsA("Beam")
-            or Object:IsA("Smoke")
-            or Object:IsA("Fire")
-            or Object:IsA("Sparkles") then
+            if obj:IsA("Decal") or obj:IsA("Texture") then
+                Set(obj, "Transparency", 1)
 
-                Set(Object, "Enabled", false)
+            elseif obj:IsA("SurfaceAppearance") then
+                Set(obj, "Enabled", false)
             end
         end)
     end
 end
 
-local function ApplyAntiFreeze()
-    if not States.AntiFreeze then
-        return
-    end
+--========================================================--
+-- FREE: ANTI-FREEZE
+--========================================================--
 
-    for _, Object in ipairs(game:GetDescendants()) do
+local function AntiFreeze()
+    AntiLag()
+
+    for _, obj in ipairs(Lighting:GetChildren()) do
         pcall(function()
-            if Object:IsA("ParticleEmitter") then
-                Set(Object, "Rate", 0)
+            if obj:IsA("PostEffect") then
+                Set(obj, "Enabled", false)
             end
         end)
     end
+end
+
+--========================================================--
+-- FREE: LOW GRAPHICS
+--========================================================--
+
+local function LowGraphics()
+    AntiLag()
+
+    local terrain = workspace:FindFirstChildOfClass("Terrain")
+
+    if terrain then
+        Set(terrain, "Decoration", false)
+    end
+end
+
+--========================================================--
+-- FREE: PARTICLE REDUCE
+--========================================================--
+
+local function ParticleReduce()
+    for _, obj in ipairs(game:GetDescendants()) do
+        pcall(function()
+            if obj:IsA("ParticleEmitter")
+                or obj:IsA("Trail")
+                or obj:IsA("Beam")
+                or obj:IsA("Smoke")
+                or obj:IsA("Fire")
+                or obj:IsA("Sparkles") then
+
+                Set(obj, "Enabled", false)
+            end
+        end)
+    end
+end
+
+--========================================================--
+-- FREE: LIGHTING
+--========================================================--
+
+local function LightingOptimize()
+    AntiLag()
+end
+
+--========================================================--
+-- FREE: TERRAIN
+--========================================================--
+
+local function TerrainOptimize()
+    local terrain = workspace:FindFirstChildOfClass("Terrain")
+
+    if terrain then
+        Set(terrain, "Decoration", false)
+    end
+end
+
+--========================================================--
+-- FREE: SMART BOOST
+--========================================================--
+
+local function SmartFreeBoost()
+    AntiLag()
+    ParticleReduce()
+    LightingOptimize()
+    TerrainOptimize()
 end
 
 local function ApplyFree()
     Restore()
 
-    ApplyAntiLag()
-    ApplyAntiTexture()
-    ApplyFPSBoost()
-    ApplyAntiFreeze()
+    if States.AntiLag then
+        AntiLag()
+    end
+
+    if States.FPSBoost then
+        FPSBoost()
+    end
+
+    if States.AntiTexture then
+        AntiTexture()
+    end
+
+    if States.AntiFreeze then
+        AntiFreeze()
+    end
+
+    if States.LowGraphics then
+        LowGraphics()
+    end
+
+    if States.ParticleReduce then
+        ParticleReduce()
+    end
+
+    if States.LightingOptimize then
+        LightingOptimize()
+    end
+
+    if States.TerrainOptimize then
+        TerrainOptimize()
+    end
+
+    if States.SmartFreeBoost then
+        SmartFreeBoost()
+    end
 end
 
-local function ToggleFree(Name)
-    if States[Name] == nil then
+local function ToggleFree(name)
+    if States[name] == nil then
         return
     end
 
-    States[Name] = not States[Name]
+    States[name] = not States[name]
     ApplyFree()
 end
 
 --========================================================--
--- FPS
+-- LIMPAR GUI ANTIGA
 --========================================================--
-
-local function SetFPS(Value)
-    CurrentFPS = Value
-
-    pcall(function()
-        if setfpscap then
-            if Value == "Unlimited" then
-                setfpscap(999)
-            else
-                setfpscap(tonumber(Value))
-            end
-        end
-    end)
-end
-
---========================================================--
--- PRO
---========================================================--
-
-local PRO = nil
-
-local function LoadPRO()
-    if PRO then
-        return true
-    end
-
-    local Success, Result = pcall(function()
-        local Source = game:HttpGet(PRO_URL)
-        local Loader = loadstring(Source)
-
-        if not Loader then
-            error("MT7PRO.lua inválido")
-        end
-
-        return Loader()
-    end)
-
-    if Success and type(Result) == "table" then
-        PRO = Result
-        return true
-    end
-
-    warn("MT7 PRO não carregou.")
-    return false
-end
-
-local function TogglePRO(Name)
-    if not IsPRO then
-        return false
-    end
-
-    if not LoadPRO() then
-        return false
-    end
-
-    if PRO.States and PRO.States[Name] ~= nil then
-        return PRO.Set(Name, not PRO.States[Name])
-    end
-
-    return false
-end
-
---========================================================--
--- GUI
---========================================================--
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MT7HubV22"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
 
 pcall(function()
-    ScreenGui.Parent = game:GetService("CoreGui")
+    local old = CoreGui:FindFirstChild("MT7_HUB_V23")
+
+    if old then
+        old:Destroy()
+    end
 end)
 
-if not ScreenGui.Parent then
-    ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+--========================================================--
+-- GUI PRINCIPAL
+--========================================================--
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "MT7_HUB_V23"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+
+pcall(function()
+    Gui.Parent = CoreGui
+end)
+
+if not Gui.Parent then
+    Gui.Parent = Player:WaitForChild("PlayerGui")
 end
-
-local Scale = Instance.new("UIScale")
-Scale.Scale = 1
-Scale.Parent = ScreenGui
-
---========================================================--
--- MOON
---========================================================--
-
-local Moon = Instance.new("ImageButton")
-Moon.Name = "MT7Moon"
-Moon.Size = UDim2.fromOffset(58, 58)
-Moon.Position = UDim2.new(0, 18, 0.5, -29)
-Moon.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
-Moon.BorderSizePixel = 0
-Moon.Image = MOON_IMAGE
-Moon.ScaleType = Enum.ScaleType.Crop
-Moon.Parent = ScreenGui
-
-local MoonCorner = Instance.new("UICorner")
-MoonCorner.CornerRadius = UDim.new(1, 0)
-MoonCorner.Parent = Moon
-
-local MoonStroke = Instance.new("UIStroke")
-MoonStroke.Thickness = 2
-MoonStroke.Color = Color3.fromRGB(40, 120, 255)
-MoonStroke.Parent = Moon
-
---========================================================--
--- MAIN
---========================================================--
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.fromOffset(340, 450)
-Main.Position = UDim2.new(0.5, -170, 0.5, -225)
-Main.BackgroundColor3 = Color3.fromRGB(8, 9, 14)
+Main.Size = UDim2.fromOffset(330, 470)
+Main.Position = UDim2.new(0.5, -165, 0.5, -235)
+Main.BackgroundColor3 = Color3.fromRGB(8, 10, 16)
 Main.BorderSizePixel = 0
-Main.Visible = false
-Main.Parent = ScreenGui
+Main.Parent = Gui
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 14)
 MainCorner.Parent = Main
 
 local MainStroke = Instance.new("UIStroke")
-MainStroke.Thickness = 1.5
-MainStroke.Color = Color3.fromRGB(35, 100, 220)
+MainStroke.Color = Color3.fromRGB(40, 120, 255)
+MainStroke.Transparency = 0.35
 MainStroke.Parent = Main
 
 --========================================================--
--- HEADER
+-- CABEÇALHO
 --========================================================--
 
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 62)
+Header.Size = UDim2.new(1, 0, 0, 58)
 Header.BackgroundTransparency = 1
 Header.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -80, 0, 32)
-Title.Position = UDim2.fromOffset(18, 8)
 Title.BackgroundTransparency = 1
-Title.Text = "MT7 HUB"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Position = UDim2.fromOffset(15, 7)
+Title.Size = UDim2.new(1, -70, 0, 28)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 22
+Title.Text = "🌙 MT7 HUB"
+Title.TextColor3 = Color3.fromRGB(235, 240, 255)
+Title.TextSize = 21
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = Header
 
 local Version = Instance.new("TextLabel")
-Version.Size = UDim2.new(1, -80, 0, 20)
-Version.Position = UDim2.fromOffset(19, 35)
 Version.BackgroundTransparency = 1
-Version.Text = "V2.2 • Performance"
-Version.TextColor3 = Color3.fromRGB(100, 150, 255)
+Version.Position = UDim2.fromOffset(16, 34)
+Version.Size = UDim2.new(1, -70, 0, 18)
 Version.Font = Enum.Font.Gotham
+Version.Text = VERSION .. " • Performance"
+Version.TextColor3 = Color3.fromRGB(100, 145, 220)
 Version.TextSize = 11
 Version.TextXAlignment = Enum.TextXAlignment.Left
 Version.Parent = Header
 
 local Close = Instance.new("TextButton")
 Close.Size = UDim2.fromOffset(38, 38)
-Close.Position = UDim2.new(1, -48, 0, 12)
-Close.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
+Close.Position = UDim2.new(1, -46, 0, 10)
+Close.BackgroundColor3 = Color3.fromRGB(20, 24, 34)
 Close.Text = "×"
-Close.TextColor3 = Color3.fromRGB(255, 255, 255)
+Close.TextColor3 = Color3.fromRGB(230, 235, 245)
+Close.TextSize = 25
 Close.Font = Enum.Font.GothamBold
-Close.TextSize = 24
 Close.Parent = Header
 
 local CloseCorner = Instance.new("UICorner")
@@ -365,355 +421,626 @@ CloseCorner.Parent = Close
 --========================================================--
 
 local Status = Instance.new("TextLabel")
-Status.Size = UDim2.new(1, -30, 0, 30)
-Status.Position = UDim2.fromOffset(15, 66)
-Status.BackgroundColor3 = Color3.fromRGB(15, 17, 25)
-Status.Text = "FREE • FPS: Unlimited"
-Status.TextColor3 = Color3.fromRGB(120, 180, 255)
+Status.BackgroundTransparency = 1
+Status.Position = UDim2.fromOffset(16, 61)
+Status.Size = UDim2.new(1, -32, 0, 25)
 Status.Font = Enum.Font.GothamSemibold
+Status.Text = "● FREE ATIVO"
+Status.TextColor3 = Color3.fromRGB(70, 220, 120)
 Status.TextSize = 12
+Status.TextXAlignment = Enum.TextXAlignment.Left
 Status.Parent = Main
 
-local StatusCorner = Instance.new("UICorner")
-StatusCorner.CornerRadius = UDim.new(0, 8)
-StatusCorner.Parent = Status
+local FPSLabel = Instance.new("TextLabel")
+FPSLabel.BackgroundTransparency = 1
+FPSLabel.Position = UDim2.new(1, -120, 0, 61)
+FPSLabel.Size = UDim2.fromOffset(105, 25)
+FPSLabel.Font = Enum.Font.GothamBold
+FPSLabel.Text = "FPS: --"
+FPSLabel.TextColor3 = Color3.fromRGB(150, 190, 255)
+FPSLabel.TextSize = 12
+FPSLabel.TextXAlignment = Enum.TextXAlignment.Right
+FPSLabel.Parent = Main
 
 --========================================================--
--- SCROLL
+-- ÁREA DE ROLAGEM
 --========================================================--
 
 local Scroll = Instance.new("ScrollingFrame")
-Scroll.Size = UDim2.new(1, -20, 1, -112)
-Scroll.Position = UDim2.fromOffset(10, 105)
+Scroll.Position = UDim2.fromOffset(10, 90)
+Scroll.Size = UDim2.new(1, -20, 1, -100)
 Scroll.BackgroundTransparency = 1
 Scroll.BorderSizePixel = 0
 Scroll.ScrollBarThickness = 4
+Scroll.ScrollBarImageColor3 = Color3.fromRGB(45, 120, 255)
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 Scroll.Parent = Main
 
 local Layout = Instance.new("UIListLayout")
 Layout.Padding = UDim.new(0, 7)
-Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
 Layout.Parent = Scroll
 
 local Padding = Instance.new("UIPadding")
-Padding.PaddingTop = UDim.new(0, 5)
 Padding.PaddingBottom = UDim.new(0, 10)
 Padding.Parent = Scroll
 
 --========================================================--
--- HELPERS
+-- FUNÇÕES DA INTERFACE
 --========================================================--
 
-local function Section(Text)
+local function Section(text, order)
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -10, 0, 28)
+
+    Label.Size = UDim2.new(1, -4, 0, 27)
     Label.BackgroundTransparency = 1
-    Label.Text = Text
-    Label.TextColor3 = Color3.fromRGB(90, 145, 255)
     Label.Font = Enum.Font.GothamBold
-    Label.TextSize = 13
+    Label.Text = text
+    Label.TextColor3 = Color3.fromRGB(75, 145, 255)
+    Label.TextSize = 12
     Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.LayoutOrder = order or 1
     Label.Parent = Scroll
+
+    return Label
 end
 
-local function Button(Text)
+local function Button(text, callback, order)
     local B = Instance.new("TextButton")
-    B.Size = UDim2.new(1, -10, 0, 40)
-    B.BackgroundColor3 = Color3.fromRGB(17, 19, 27)
+
+    B.Size = UDim2.new(1, -4, 0, 40)
+    B.BackgroundColor3 = Color3.fromRGB(17, 21, 30)
     B.BorderSizePixel = 0
-    B.Text = Text
-    B.TextColor3 = Color3.fromRGB(235, 235, 240)
     B.Font = Enum.Font.GothamSemibold
+    B.Text = text
+    B.TextColor3 = Color3.fromRGB(220, 225, 235)
     B.TextSize = 12
+    B.AutoButtonColor = false
+    B.LayoutOrder = order or 1
     B.Parent = Scroll
 
     local C = Instance.new("UICorner")
     C.CornerRadius = UDim.new(0, 9)
     C.Parent = B
 
+    B.MouseEnter:Connect(function()
+        B.BackgroundColor3 = Color3.fromRGB(25, 32, 48)
+    end)
+
+    B.MouseLeave:Connect(function()
+        B.BackgroundColor3 = Color3.fromRGB(17, 21, 30)
+    end)
+
+    B.MouseButton1Click:Connect(function()
+        pcall(callback)
+    end)
+
     return B
 end
 
 local function UpdateStatus()
-    Status.Text =
-        (IsPRO and "PRO" or "FREE")
-        .. " • FPS: "
-        .. tostring(CurrentFPS)
-end
+    local active = 0
 
-local function UpdateFreeButton(B, Name)
-    B.Text =
-        Name
-        .. "  ["
-        .. (States[Name] and "ON" or "OFF")
-        .. "]"
+    for _, value in pairs(States) do
+        if value then
+            active += 1
+        end
+    end
+
+    if PRO.Verified then
+        Status.Text = "● PRO ATIVO • " .. active .. " FREE"
+        Status.TextColor3 = Color3.fromRGB(80, 180, 255)
+    else
+        Status.Text = "● FREE ATIVO • " .. active .. " otimizações"
+        Status.TextColor3 = Color3.fromRGB(70, 220, 120)
+    end
 end
 
 --========================================================--
 -- FREE
 --========================================================--
 
-Section("⚡ OTIMIZAÇÃO FREE")
+Section("FREE • OTIMIZAÇÃO", 1)
 
-local AntiLagButton = Button("AntiLag  [OFF]")
-AntiLagButton.MouseButton1Click:Connect(function()
-    ToggleFree("AntiLag")
-    UpdateFreeButton(AntiLagButton, "AntiLag")
-end)
+local FreeButtons = {}
 
-local TextureButton = Button("AntiTexture  [OFF]")
-TextureButton.MouseButton1Click:Connect(function()
-    ToggleFree("AntiTexture")
-    UpdateFreeButton(TextureButton, "AntiTexture")
-end)
+local function FreeToggle(name, display, order)
+    local B
 
-local FPSBoostButton = Button("FPSBoost  [OFF]")
-FPSBoostButton.MouseButton1Click:Connect(function()
-    ToggleFree("FPSBoost")
-    UpdateFreeButton(FPSBoostButton, "FPSBoost")
-end)
-
-local FreezeButton = Button("AntiFreeze  [OFF]")
-FreezeButton.MouseButton1Click:Connect(function()
-    ToggleFree("AntiFreeze")
-    UpdateFreeButton(FreezeButton, "AntiFreeze")
-end)
-
---========================================================--
--- PRO
---========================================================--
-
-Section("🔒 OTIMIZAÇÃO PRO")
-
-local PROButtons = {}
-
-local function PROButton(Name)
-    local B = Button("🔒 " .. Name .. "  [PRO]")
-    PROButtons[Name] = B
-
-    B.MouseButton1Click:Connect(function()
-        if not IsPRO then
-            Status.Text = "🔒 PRO bloqueado"
-            task.delay(2, UpdateStatus)
-            return
+    local function Refresh()
+        if States[name] then
+            B.Text = "🟢 " .. display .. "   [ON]"
+            B.TextColor3 = Color3.fromRGB(90, 230, 130)
+        else
+            B.Text = "⚪ " .. display .. "   [OFF]"
+            B.TextColor3 = Color3.fromRGB(220, 225, 235)
         end
+    end
 
-        TogglePRO(Name)
+    B = Button("", function()
+        ToggleFree(name)
+        Refresh()
+        UpdateStatus()
+    end, order)
 
-        if PRO and PRO.States and PRO.States[Name] ~= nil then
-            B.Text =
-                Name
-                .. "  ["
-                .. (PRO.States[Name] and "ON" or "OFF")
-                .. "]"
-        end
-    end)
+    FreeButtons[name] = Refresh
+    Refresh()
 
     return B
 end
 
-PROButton("UltraFPS")
-PROButton("UltraRender")
-PROButton("SmartBoost")
-PROButton("ParticleBoost")
-PROButton("LightingBoost")
-PROButton("TerrainBoost")
+FreeToggle("AntiLag", "Anti-Lag", 2)
+FreeToggle("FPSBoost", "FPS Boost", 3)
+FreeToggle("AntiTexture", "Anti-Texture", 4)
+FreeToggle("AntiFreeze", "Anti-Freeze", 5)
+FreeToggle("LowGraphics", "Low Graphics", 6)
+FreeToggle("ParticleReduce", "Particle Reduce", 7)
+FreeToggle("LightingOptimize", "Lighting Optimize", 8)
+FreeToggle("TerrainOptimize", "Terrain Optimize", 9)
+FreeToggle("SmartFreeBoost", "Smart Free Boost", 10)
 
 --========================================================--
 -- FPS
 --========================================================--
 
-Section("🎯 LIMITE DE FPS")
+Section("FPS • LIMITADOR", 20)
 
-for _, Value in ipairs({
-    "30",
-    "40",
-    "50",
-    "60",
-    "75",
-    "90",
-    "120",
-    "Unlimited"
-}) do
+local FPSButtons = {}
 
-    local B = Button("FPS " .. Value)
-
-    B.MouseButton1Click:Connect(function()
-        SetFPS(Value)
-        UpdateStatus()
-    end)
-end
-
---========================================================--
--- SETTINGS
---========================================================--
-
-Section("⚙ CONFIGURAÇÕES")
-
-local MoonToggle = Button("🌙 Moon Button  [ON]")
-
-MoonToggle.MouseButton1Click:Connect(function()
-    MoonEnabled = not MoonEnabled
-    Moon.Visible = MoonEnabled
-
-    MoonToggle.Text =
-        "🌙 Moon Button  ["
-        .. (MoonEnabled and "ON" or "OFF")
-        .. "]"
-end)
-
-local RestoreButton = Button("♻ Restaurar otimizações")
-
-RestoreButton.MouseButton1Click:Connect(function()
-    States.AntiLag = false
-    States.AntiTexture = false
-    States.FPSBoost = false
-    States.AntiFreeze = false
-
-    Restore()
-
-    if PRO and PRO.DisableAll then
-        pcall(function()
-            PRO.DisableAll()
-        end)
-    end
-
-    UpdateFreeButton(AntiLagButton, "AntiLag")
-    UpdateFreeButton(TextureButton, "AntiTexture")
-    UpdateFreeButton(FPSBoostButton, "FPSBoost")
-    UpdateFreeButton(FreezeButton, "AntiFreeze")
-
-    for Name, B in pairs(PROButtons) do
-        if IsPRO then
-            B.Text = Name .. "  [OFF]"
+local function FPSButton(label, value)
+    local B = Button("⚡ FPS " .. label, function()
+        if value == 999 then
+            SetUnlimitedFPS()
         else
-            B.Text = "🔒 " .. Name .. "  [PRO]"
+            SetFPS(value)
         end
-    end
 
-    Status.Text = "Otimizações restauradas"
-    task.delay(2, UpdateStatus)
-end)
+        for _, other in ipairs(FPSButtons) do
+            other.BackgroundColor3 = Color3.fromRGB(17, 21, 30)
+        end
 
---========================================================--
--- SCALE
---========================================================--
-
-Section("📐 TAMANHO DA INTERFACE")
-
-for _, Data in ipairs({
-    {"70%", 0.70},
-    {"85%", 0.85},
-    {"100%", 1},
-    {"115%", 1.15}
-}) do
-
-    local B = Button("Interface " .. Data[1])
-
-    B.MouseButton1Click:Connect(function()
-        Scale.Scale = Data[2]
+        B.BackgroundColor3 = Color3.fromRGB(25, 65, 115)
     end)
+
+    table.insert(FPSButtons, B)
 end
 
+FPSButton("30", 30)
+FPSButton("40", 40)
+FPSButton("50", 50)
+FPSButton("60", 60)
+FPSButton("75", 75)
+FPSButton("90", 90)
+FPSButton("120", 120)
+FPSButton("Unlimited", 999)
 --========================================================--
--- KEY
+-- PRO KEY
 --========================================================--
 
-Section("🔑 MT7 PRO")
+Section("🔒 PRO • SISTEMA", 40)
 
 local KeyBox = Instance.new("TextBox")
-KeyBox.Size = UDim2.new(1, -10, 0, 40)
-KeyBox.BackgroundColor3 = Color3.fromRGB(17, 19, 27)
+KeyBox.Size = UDim2.new(1, -4, 0, 40)
+KeyBox.BackgroundColor3 = Color3.fromRGB(14, 18, 27)
 KeyBox.BorderSizePixel = 0
 KeyBox.PlaceholderText = "Digite sua chave PRO..."
-KeyBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 130)
+KeyBox.PlaceholderColor3 = Color3.fromRGB(100, 110, 125)
 KeyBox.Text = ""
-KeyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyBox.TextColor3 = Color3.fromRGB(235, 240, 250)
 KeyBox.Font = Enum.Font.Gotham
 KeyBox.TextSize = 12
 KeyBox.ClearTextOnFocus = false
+KeyBox.LayoutOrder = 41
 KeyBox.Parent = Scroll
 
 local KeyCorner = Instance.new("UICorner")
 KeyCorner.CornerRadius = UDim.new(0, 9)
 KeyCorner.Parent = KeyBox
 
-local Verify = Button("🔓 Ativar PRO")
+local VerifyButton
 
-Verify.MouseButton1Click:Connect(function()
-    local Key = tostring(KeyBox.Text):gsub("%s+", "")
+VerifyButton = Button("🔑 VERIFICAR KEY", function()
+    local key = tostring(KeyBox.Text)
 
-    if VALID_KEYS[Key] then
-        IsPRO = true
+    if not VALID_KEYS[key] then
+        PRO.Verified = false
+        VerifyButton.Text = "❌ KEY INVÁLIDA"
 
-        LoadPRO()
-
-        Status.Text = "✓ MT7 PRO ativado"
-
-        for Name, B in pairs(PROButtons) do
-            if PRO and PRO.States and PRO.States[Name] ~= nil then
-                B.Text = Name .. "  [OFF]"
-            else
-                B.Text = Name .. "  [OFF]"
+        task.delay(1.5, function()
+            if VerifyButton.Parent then
+                VerifyButton.Text = "🔑 VERIFICAR KEY"
             end
+        end)
+
+        UpdateStatus()
+        return
+    end
+
+    PRO.Verified = true
+    VerifyButton.Text = "⏳ CARREGANDO PRO..."
+
+    task.spawn(function()
+        local ok, result = pcall(function()
+            local source = game:HttpGet(PRO_URL)
+            local loader = loadstring(source)
+
+            if not loader then
+                error("Falha ao carregar MT7PRO.lua")
+            end
+
+            return loader()
+        end)
+
+        if ok and result then
+            PRO.Module = result
+            VerifyButton.Text = "✅ PRO ATIVO"
+        else
+            PRO.Verified = false
+            PRO.Module = nil
+            VerifyButton.Text = "❌ FALHA AO CARREGAR PRO"
         end
 
-        task.delay(2, UpdateStatus)
+        UpdateStatus()
+
+        task.delay(2, function()
+            if VerifyButton.Parent then
+                VerifyButton.Text = "🔑 VERIFICAR KEY"
+            end
+        end)
+    end)
+end, 42)
+
+--========================================================--
+-- PRO
+--========================================================--
+
+Section("PRO • PERFORMANCE AVANÇADA", 50)
+
+local PROButtons = {}
+
+local function PROToggle(name, display, order)
+    local B
+
+    local function Refresh()
+        if not PRO.Verified then
+            B.Text = "🔒 " .. display .. "   [PRO]"
+            B.TextColor3 = Color3.fromRGB(130, 135, 150)
+            return
+        end
+
+        if PRO.Module and PRO.Module.States then
+            if PRO.Module.States[name] then
+                B.Text = "🟢 " .. display .. "   [ON]"
+                B.TextColor3 = Color3.fromRGB(90, 230, 130)
+            else
+                B.Text = "⚪ " .. display .. "   [OFF]"
+                B.TextColor3 = Color3.fromRGB(130, 190, 255)
+            end
+        else
+            B.Text = "🔒 " .. display .. "   [PRO]"
+        end
+    end
+
+    B = Button("", function()
+        if not PRO.Verified or not PRO.Module then
+            B.Text = "🔒 KEY NECESSÁRIA"
+            task.delay(1.2, Refresh)
+            return
+        end
+
+        if type(PRO.Module.Set) == "function" then
+            local current = PRO.Module.States[name]
+            PRO.Module.Set(name, not current)
+        end
+
+        Refresh()
+    end, order)
+
+    PROButtons[name] = Refresh
+    Refresh()
+
+    return B
+end
+
+PROToggle("UltraFPS", "Ultra FPS", 51)
+PROToggle("UltraRender", "Ultra Render", 52)
+PROToggle("ParticleBoost", "Ultra Particles", 53)
+PROToggle("LightingBoost", "Ultra Lighting", 54)
+PROToggle("TerrainBoost", "Ultra Terrain", 55)
+PROToggle("SmartBoost", "Smart PRO Boost", 56)
+
+Button("🔒 APLICAR TODAS PRO", function()
+    if not PRO.Verified or not PRO.Module then
+        return
+    end
+
+    if type(PRO.Module.EnableAll) == "function" then
+        PRO.Module.EnableAll()
+    end
+
+    for _, refresh in pairs(PROButtons) do
+        refresh()
+    end
+end, 57)
+
+Button("🔒 RESTAURAR PRO", function()
+    if not PRO.Verified or not PRO.Module then
+        return
+    end
+
+    if type(PRO.Module.DisableAll) == "function" then
+        PRO.Module.DisableAll()
+    end
+
+    for _, refresh in pairs(PROButtons) do
+        refresh()
+    end
+end, 58)
+
+--========================================================--
+-- SISTEMA
+--========================================================--
+
+Section("SISTEMA", 70)
+
+local SettingsFrame
+
+Button("⚙️ CONFIGURAÇÕES", function()
+    if SettingsFrame then
+        SettingsFrame.Visible = not SettingsFrame.Visible
+    end
+end, 71)
+
+Button("♻️ RESTAURAR TUDO", function()
+    for name in pairs(States) do
+        States[name] = false
+    end
+
+    Restore()
+
+    if PRO.Module and type(PRO.Module.DisableAll) == "function" then
+        PRO.Module.DisableAll()
+    end
+
+    for _, refresh in pairs(FreeButtons) do
+        refresh()
+    end
+
+    for _, refresh in pairs(PROButtons) do
+        refresh()
+    end
+
+    UpdateStatus()
+end, 72)
+
+--========================================================--
+-- JANELA DE CONFIGURAÇÕES
+--========================================================--
+
+SettingsFrame = Instance.new("Frame")
+SettingsFrame.Name = "Settings"
+SettingsFrame.Size = UDim2.fromOffset(285, 330)
+SettingsFrame.Position = UDim2.new(0.5, -142, 0.5, -165)
+SettingsFrame.BackgroundColor3 = Color3.fromRGB(8, 10, 16)
+SettingsFrame.BorderSizePixel = 0
+SettingsFrame.Visible = false
+SettingsFrame.ZIndex = 20
+SettingsFrame.Parent = Gui
+
+local SC = Instance.new("UICorner")
+SC.CornerRadius = UDim.new(0, 14)
+SC.Parent = SettingsFrame
+
+local SS = Instance.new("UIStroke")
+SS.Color = Color3.fromRGB(40, 120, 255)
+SS.Parent = SettingsFrame
+
+local ST = Instance.new("TextLabel")
+ST.Size = UDim2.new(1, -55, 0, 42)
+ST.Position = UDim2.fromOffset(15, 7)
+ST.BackgroundTransparency = 1
+ST.Text = "⚙️ CONFIGURAÇÕES"
+ST.TextColor3 = Color3.fromRGB(235, 240, 255)
+ST.Font = Enum.Font.GothamBold
+ST.TextSize = 17
+ST.TextXAlignment = Enum.TextXAlignment.Left
+ST.ZIndex = 21
+ST.Parent = SettingsFrame
+
+local SCLOSE = Instance.new("TextButton")
+SCLOSE.Size = UDim2.fromOffset(35, 35)
+SCLOSE.Position = UDim2.new(1, -43, 0, 8)
+SCLOSE.BackgroundColor3 = Color3.fromRGB(20, 24, 34)
+SCLOSE.Text = "×"
+SCLOSE.TextColor3 = Color3.fromRGB(235, 240, 250)
+SCLOSE.Font = Enum.Font.GothamBold
+SCLOSE.TextSize = 22
+SCLOSE.ZIndex = 21
+SCLOSE.Parent = SettingsFrame
+
+SCLOSE.MouseButton1Click:Connect(function()
+    SettingsFrame.Visible = false
+end)
+
+local SLayout = Instance.new("UIListLayout")
+SLayout.Padding = UDim.new(0, 8)
+SLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SLayout.Parent = SettingsFrame
+
+local SPadding = Instance.new("UIPadding")
+SPadding.PaddingTop = UDim.new(0, 55)
+SPadding.PaddingLeft = UDim.new(0, 15)
+SPadding.PaddingRight = UDim.new(0, 15)
+SPadding.PaddingBottom = UDim.new(0, 10)
+SPadding.Parent = SettingsFrame
+
+local MoonToggle = Instance.new("TextButton")
+MoonToggle.Size = UDim2.new(1, 0, 0, 38)
+MoonToggle.BackgroundColor3 = Color3.fromRGB(17, 21, 30)
+MoonToggle.BorderSizePixel = 0
+MoonToggle.Font = Enum.Font.GothamSemibold
+MoonToggle.TextSize = 12
+MoonToggle.ZIndex = 21
+MoonToggle.LayoutOrder = 1
+MoonToggle.Parent = SettingsFrame
+
+local Floating
+
+local function UpdateMoon()
+    if Settings.Moon then
+        MoonToggle.Text = "🌙 Moon Button   [ON]"
+        MoonToggle.TextColor3 = Color3.fromRGB(100, 190, 255)
     else
-        IsPRO = false
-        Status.Text = "✕ Chave inválida"
-
-        task.delay(2, UpdateStatus)
+        MoonToggle.Text = "🌙 Moon Button   [OFF]"
+        MoonToggle.TextColor3 = Color3.fromRGB(160, 165, 175)
     end
+
+    if Floating then
+        Floating.Visible = Settings.Moon
+    end
+end
+
+MoonToggle.MouseButton1Click:Connect(function()
+    Settings.Moon = not Settings.Moon
+    UpdateMoon()
 end)
 
+local function ScaleButton(label, scale, order)
+    local B = Instance.new("TextButton")
+
+    B.Size = UDim2.new(1, 0, 0, 38)
+    B.BackgroundColor3 = Color3.fromRGB(17, 21, 30)
+    B.BorderSizePixel = 0
+    B.Text = "📐 Escala " .. label
+    B.TextColor3 = Color3.fromRGB(220, 225, 235)
+    B.Font = Enum.Font.GothamSemibold
+    B.TextSize = 12
+    B.ZIndex = 21
+    B.LayoutOrder = order
+    B.Parent = SettingsFrame
+
+    B.MouseButton1Click:Connect(function()
+        Settings.Scale = scale
+
+        Main.Size = UDim2.fromOffset(
+            math.floor(330 * scale),
+            math.floor(470 * scale)
+        )
+    end)
+end
+
+ScaleButton("70%", 0.70, 2)
+ScaleButton("85%", 0.85, 3)
+ScaleButton("100%", 1, 4)
+ScaleButton("115%", 1.15, 5)
+
 --========================================================--
--- FPS MONITOR
+-- BOTÃO FLUTUANTE DA LUA
 --========================================================--
 
-local Monitor = Button("📊 FPS Monitor  [ON]")
+Floating = Instance.new("ImageButton")
+Floating.Name = "MT7Floating"
+Floating.Size = UDim2.fromOffset(58, 58)
+Floating.Position = UDim2.new(0, 18, 0.5, -29)
+Floating.BackgroundColor3 = Color3.fromRGB(8, 10, 16)
+Floating.Image = MOON_IMAGE
+Floating.ScaleType = Enum.ScaleType.Fit
+Floating.Visible = Settings.Moon
+Floating.ZIndex = 50
+Floating.Parent = Gui
 
-local MonitorEnabled = true
-local Frames = 0
-local LastTime = os.clock()
+local FC = Instance.new("UICorner")
+FC.CornerRadius = UDim.new(1, 0)
+FC.Parent = Floating
 
-Monitor.MouseButton1Click:Connect(function()
-    MonitorEnabled = not MonitorEnabled
+local FS = Instance.new("UIStroke")
+FS.Color = Color3.fromRGB(55, 135, 255)
+FS.Thickness = 2
+FS.Parent = Floating
 
-    Monitor.Text =
-        "📊 FPS Monitor  ["
-        .. (MonitorEnabled and "ON" or "OFF")
-        .. "]"
-end)
+--========================================================--
+-- SISTEMA DE ARRASTAR
+--========================================================--
 
-RunService.RenderStepped:Connect(function()
-    Frames += 1
+local function MakeDraggable(object)
+    local dragging = false
+    local dragStart
+    local startPosition
 
-    local Now = os.clock()
+    object.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
 
-    if Now - LastTime >= 1 then
-        local FPS = Frames
+            dragging = true
+            dragStart = input.Position
+            startPosition = object.Position
 
-        Frames = 0
-        LastTime = Now
-
-        if MonitorEnabled then
-            Status.Text =
-                (IsPRO and "PRO" or "FREE")
-                .. " • FPS: "
-                .. tostring(CurrentFPS)
-                .. " • LIVE: "
-                .. tostring(FPS)
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
         end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if not dragging then
+            return
+        end
+
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+
+            local delta = input.Position - dragStart
+
+            object.Position = UDim2.new(
+                startPosition.X.Scale,
+                startPosition.X.Offset + delta.X,
+                startPosition.Y.Scale,
+                startPosition.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
+MakeDraggable(Main)
+MakeDraggable(SettingsFrame)
+MakeDraggable(Floating)
+
+--========================================================--
+-- ABRIR / FECHAR
+--========================================================--
+
+local Open = true
+
+local function CloseMenu()
+    if not Open then
+        return
     end
-end)
 
---========================================================--
--- OPEN / CLOSE
---========================================================--
+    Open = false
 
-local Open = false
+    local tween = TweenService:Create(
+        Main,
+        TweenInfo.new(
+            0.15,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.In
+        ),
+        {
+            Position = UDim2.new(0.5, -165, 1.2, 0)
+        }
+    )
+
+    tween:Play()
+
+    tween.Completed:Connect(function()
+        if not Open then
+            Main.Visible = false
+        end
+    end)
+end
 
 local function OpenMenu()
     if Open then
@@ -723,23 +1050,81 @@ local function OpenMenu()
     Open = true
     Main.Visible = true
 
-    Main.Size = UDim2.fromOffset(300, 400)
+    Main.Position = UDim2.new(0.5, -165, 1.2, 0)
 
     TweenService:Create(
         Main,
-        TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        TweenInfo.new(
+            0.18,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.Out
+        ),
         {
-            Size = UDim2.fromOffset(340, 450)
+            Position = UDim2.new(0.5, -165, 0.5, -235)
         }
     ):Play()
 end
 
-local function CloseMenu()
-    if not Open then
-        return
+Close.MouseButton1Click:Connect(CloseMenu)
+
+Floating.MouseButton1Click:Connect(function()
+    if Open then
+        CloseMenu()
+    else
+        OpenMenu()
     end
+end)
 
-    Open = false
+--========================================================--
+-- MONITOR DE FPS
+--========================================================--
 
-    local Tween = TweenService:Create(
-       
+local frames = 0
+local last = os.clock()
+
+RunService.RenderStepped:Connect(function()
+    frames += 1
+
+    local now = os.clock()
+
+    if now - last >= 1 then
+        local fps = math.floor(frames / (now - last))
+
+        FPSLabel.Text = "FPS: " .. tostring(fps)
+
+        frames = 0
+        last = now
+    end
+end)
+
+--========================================================--
+-- AO RENASCER
+--========================================================--
+
+Player.CharacterAdded:Connect(function()
+    task.wait(1)
+
+    ApplyFree()
+
+    if PRO.Verified
+        and PRO.Module
+        and type(PRO.Module.Apply) == "function" then
+
+        pcall(function()
+            PRO.Module.Apply()
+        end)
+    end
+end)
+
+--========================================================--
+-- INICIALIZAÇÃO
+--========================================================--
+
+SetFPS(Settings.FPS)
+UpdateMoon()
+UpdateStatus()
+
+print("========================================")
+print("MT7 HUB V2.3 carregado!")
+print("FREE + PRO PERFORMANCE")
+print("========================================")
