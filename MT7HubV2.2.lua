@@ -1971,6 +1971,992 @@ Button(
     function()
 
         CurrentFPS = 9--========================================================--
+--                    MT7 HUB V2.2                       --
+--              PERFORMANCE + PRO SYSTEM                 --
+--========================================================--
+
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local Player = Players.LocalPlayer
+
+--========================================================--
+--                      KEY SYSTEM                        --
+--========================================================--
+
+local VALID_KEYS = {
+    ["MT-708090"] = true,
+    ["MT-123456"] = true,
+    ["MT-987654"] = true
+}
+
+local IsPRO = false
+local PRO = nil
+
+local PRO_URL =
+    "https://raw.githubusercontent.com/maycondograu405-png/MT7-Hub-V/refs/heads/main/MT7PRO.lua"
+
+local function LoadPRO()
+    if PRO then
+        return true
+    end
+
+    local success, result = pcall(function()
+        local source = game:HttpGet(PRO_URL)
+        return loadstring(source)()
+    end)
+
+    if success and type(result) == "table" then
+        PRO = result
+        IsPRO = true
+        return true
+    end
+
+    warn("MT7: não foi possível carregar MT7PRO.lua")
+    return false
+end
+
+--========================================================--
+--                       STATES                           --
+--========================================================--
+
+local States = {
+    AntiLag = false,
+    AntiTexture = false,
+    FPSBoost = false,
+    AntiFreeze = false
+}
+
+--========================================================--
+--                       THEME                            --
+--========================================================--
+
+local Themes = {
+    {
+        Name = "Azul",
+        Main = Color3.fromRGB(20,90,170),
+        Light = Color3.fromRGB(70,170,255)
+    },
+
+    {
+        Name = "Roxo",
+        Main = Color3.fromRGB(100,45,180),
+        Light = Color3.fromRGB(180,100,255)
+    },
+
+    {
+        Name = "Ciano",
+        Main = Color3.fromRGB(20,130,160),
+        Light = Color3.fromRGB(70,230,255)
+    },
+
+    {
+        Name = "Verde",
+        Main = Color3.fromRGB(25,130,70),
+        Light = Color3.fromRGB(80,230,130)
+    },
+
+    {
+        Name = "Vermelho",
+        Main = Color3.fromRGB(150,35,45),
+        Light = Color3.fromRGB(255,80,90)
+    }
+}
+
+local ThemeIndex = 1
+local CurrentFPS = 60
+local MoonEnabled = true
+
+--========================================================--
+--                  ORIGINAL VALUES                      --
+--========================================================--
+
+local Original = {}
+
+local function SaveOriginal(obj, property)
+
+    if not Original[obj] then
+        Original[obj] = {}
+    end
+
+    if Original[obj][property] == nil then
+
+        local success, value = pcall(function()
+            return obj[property]
+        end)
+
+        if success then
+            Original[obj][property] = value
+        end
+
+    end
+end
+
+local function SetProperty(obj, property, value)
+
+    SaveOriginal(obj, property)
+
+    pcall(function()
+        obj[property] = value
+    end)
+
+end
+
+local function RestoreAll()
+
+    for obj, properties in pairs(Original) do
+
+        if obj and obj.Parent then
+
+            for property, value in pairs(properties) do
+
+                pcall(function()
+                    obj[property] = value
+                end)
+
+            end
+
+        end
+
+    end
+
+end
+
+--========================================================--
+--                  FREE OPTIMIZATION                    --
+--========================================================--
+
+local function ApplyFree()
+
+    RestoreAll()
+
+    -- ANTI LAG
+    if States.AntiLag then
+
+        for _, obj in ipairs(game:GetDescendants()) do
+
+            pcall(function()
+
+                if obj:IsA("ParticleEmitter")
+                or obj:IsA("Trail")
+                or obj:IsA("Beam")
+                or obj:IsA("Smoke")
+                or obj:IsA("Fire")
+                or obj:IsA("Sparkles")
+                or obj:IsA("Highlight") then
+
+                    SetProperty(obj,"Enabled",false)
+
+                elseif obj:IsA("PointLight")
+                or obj:IsA("SpotLight")
+                or obj:IsA("SurfaceLight") then
+
+                    SetProperty(obj,"Enabled",false)
+
+                end
+
+            end)
+
+        end
+
+        SetProperty(Lighting,"GlobalShadows",false)
+
+    end
+
+    -- ANTI TEXTURA
+    if States.AntiTexture then
+
+        for _, obj in ipairs(game:GetDescendants()) do
+
+            pcall(function()
+
+                if obj:IsA("Decal")
+                or obj:IsA("Texture") then
+
+                    SetProperty(obj,"Transparency",1)
+
+                elseif obj:IsA("MeshPart") then
+
+                    SetProperty(obj,"TextureID","")
+
+                elseif obj:IsA("SpecialMesh") then
+
+                    SetProperty(obj,"TextureId","")
+
+                elseif obj:IsA("SurfaceAppearance") then
+
+                    SetProperty(obj,"Enabled",false)
+
+                end
+
+            end)
+
+        end
+
+    end
+
+    -- FPS BOOST
+    if States.FPSBoost then
+
+        SetProperty(Lighting,"GlobalShadows",false)
+
+        for _, obj in ipairs(Lighting:GetChildren()) do
+
+            pcall(function()
+
+                if obj:IsA("PostEffect") then
+                    SetProperty(obj,"Enabled",false)
+                end
+
+                if obj:IsA("Atmosphere") then
+                    SetProperty(obj,"Density",0)
+                    SetProperty(obj,"Haze",0)
+                    SetProperty(obj,"Glare",0)
+                end
+
+            end)
+
+        end
+
+        local terrain =
+            workspace:FindFirstChildOfClass("Terrain")
+
+        if terrain then
+            SetProperty(terrain,"Decoration",false)
+        end
+
+    end
+
+    -- ANTI CONGELAMENTO
+    if States.AntiFreeze then
+
+        for _, obj in ipairs(game:GetDescendants()) do
+
+            pcall(function()
+
+                if obj:IsA("ParticleEmitter")
+                or obj:IsA("Trail")
+                or obj:IsA("Beam")
+                or obj:IsA("Smoke")
+                or obj:IsA("Fire")
+                or obj:IsA("Sparkles")
+                or obj:IsA("Highlight") then
+
+                    SetProperty(obj,"Enabled",false)
+
+                end
+
+            end)
+
+        end
+
+    end
+
+end
+
+local function ToggleFree(name)
+
+    States[name] = not States[name]
+
+    ApplyFree()
+
+    return States[name]
+end
+
+--========================================================--
+--                         GUI                            --
+--========================================================--
+
+local ScreenGui = Instance.new("ScreenGui")
+
+ScreenGui.Name = "MT7_HUB_V22"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+pcall(function()
+    ScreenGui.Parent = game:GetService("CoreGui")
+end)
+
+if not ScreenGui.Parent then
+    ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+end
+
+--========================================================--
+--                       SCALE                            --
+--========================================================--
+
+local UIScale = Instance.new("UIScale")
+UIScale.Scale = 0.85
+UIScale.Parent = ScreenGui
+
+--========================================================--
+--                    UI HELPERS                         --
+--========================================================--
+
+local function Corner(parent,radius)
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0,radius)
+    c.Parent = parent
+
+    return c
+end
+
+local function Stroke(parent,color,thickness)
+
+    local s = Instance.new("UIStroke")
+    s.Color = color
+    s.Thickness = thickness
+    s.Parent = parent
+
+    return s
+end
+
+local function Create(class,properties)
+
+    local obj = Instance.new(class)
+
+    for property,value in pairs(properties) do
+
+        pcall(function()
+            obj[property] = value
+        end)
+
+    end
+
+    return obj
+end
+
+--========================================================--
+--                  FLOAT BUTTON                        --
+--========================================================--
+
+local FloatButton = Create("TextButton",{
+
+    Parent = ScreenGui,
+
+    Size = UDim2.new(0,60,0,60),
+
+    Position =
+        UDim2.new(0,15,0.5,-30),
+
+    BackgroundColor3 =
+        Color3.fromRGB(4,7,13),
+
+    BackgroundTransparency = 0.05,
+
+    Text = "🌙",
+
+    TextSize = 28,
+
+    AutoButtonColor = false
+
+})
+
+Corner(FloatButton,100)
+
+local FloatStroke =
+    Stroke(
+        FloatButton,
+        Themes[ThemeIndex].Light,
+        2
+    )
+
+--========================================================--
+--                        MAIN                           --
+--========================================================--
+
+local Main = Create("Frame",{
+
+    Parent = ScreenGui,
+
+    Size = UDim2.new(0,330,0,440),
+
+    Position =
+        UDim2.new(0.5,-165,0.5,-220),
+
+    BackgroundColor3 =
+        Color3.fromRGB(3,5,10),
+
+    BackgroundTransparency = 0.05,
+
+    Visible = false
+
+})
+
+Corner(Main,14)
+
+local MainStroke =
+    Stroke(
+        Main,
+        Themes[ThemeIndex].Main,
+        2
+    )
+
+--========================================================--
+--                       HEADER                          --
+--========================================================--
+
+local Header = Create("Frame",{
+
+    Parent = Main,
+
+    Size = UDim2.new(1,0,0,70),
+
+    BackgroundTransparency = 1
+
+})
+
+local Moon = Create("ImageLabel",{
+
+    Parent = Header,
+
+    Size = UDim2.new(0,55,0,55),
+
+    Position = UDim2.new(0,8,0,7),
+
+    BackgroundTransparency = 1,
+
+    Image = "rbxassetid://7072719740",
+
+    ScaleType = Enum.ScaleType.Fit
+
+})
+
+local Title = Create("TextLabel",{
+
+    Parent = Header,
+
+    Size = UDim2.new(1,-75,0,35),
+
+    Position = UDim2.new(0,70,0,8),
+
+    BackgroundTransparency = 1,
+
+    Text = "MT7 HUB",
+
+    Font = Enum.Font.GothamBold,
+
+    TextSize = 24,
+
+    TextColor3 =
+        Themes[ThemeIndex].Light,
+
+    TextXAlignment =
+        Enum.TextXAlignment.Left
+
+})
+
+local SubTitle = Create("TextLabel",{
+
+    Parent = Header,
+
+    Size = UDim2.new(1,-75,0,22),
+
+    Position = UDim2.new(0,70,0,38),
+
+    BackgroundTransparency = 1,
+
+    Text = "Performance • Free + PRO",
+
+    Font = Enum.Font.Gotham,
+
+    TextSize = 12,
+
+    TextColor3 =
+        Color3.fromRGB(150,160,180),
+
+    TextXAlignment =
+        Enum.TextXAlignment.Left
+
+})
+
+--========================================================--
+--                       STATUS                          --
+--========================================================--
+
+local Status = Create("TextLabel",{
+
+    Parent = Main,
+
+    Size = UDim2.new(1,-20,0,25),
+
+    Position = UDim2.new(0,10,0,72),
+
+    BackgroundTransparency = 1,
+
+    Text = "FREE • PRO bloqueado",
+
+    Font = Enum.Font.GothamBold,
+
+    TextSize = 12,
+
+    TextColor3 =
+        Color3.fromRGB(180,185,200)
+
+})
+
+--========================================================--
+--                       SCROLL                           --
+--========================================================--
+
+local Scroll = Create("ScrollingFrame",{
+
+    Parent = Main,
+
+    Size = UDim2.new(1,-16,1,-110),
+
+    Position = UDim2.new(0,8,0,100),
+
+    BackgroundTransparency = 1,
+
+    BorderSizePixel = 0,
+
+    ScrollBarThickness = 3,
+
+    CanvasSize = UDim2.new(0,0,0,0)
+
+})
+
+local Layout = Instance.new("UIListLayout")
+
+Layout.Parent = Scroll
+
+Layout.Padding = UDim.new(0,7)
+
+Layout.HorizontalAlignment =
+    Enum.HorizontalAlignment.Center
+
+Layout.SortOrder =
+    Enum.SortOrder.LayoutOrder
+
+Layout:GetPropertyChangedSignal("AbsoluteContentSize")
+    :Connect(function()
+
+        Scroll.CanvasSize =
+            UDim2.new(
+                0,
+                0,
+                0,
+                Layout.AbsoluteContentSize.Y + 10
+            )
+
+    end)
+
+--========================================================--
+--                       BUTTON                          --
+--========================================================--
+
+local function Button(text,callback)
+
+    local b = Create("TextButton",{
+
+        Parent = Scroll,
+
+        Size = UDim2.new(1,-8,0,42),
+
+        BackgroundColor3 =
+            Color3.fromRGB(8,12,20),
+
+        Text = text,
+
+        Font = Enum.Font.GothamBold,
+
+        TextSize = 13,
+
+        TextColor3 =
+            Color3.fromRGB(230,235,245),
+
+        AutoButtonColor = false
+
+    })
+
+    Corner(b,9)
+
+    Stroke(
+        b,
+        Themes[ThemeIndex].Main,
+        1
+    )
+
+    b.MouseButton1Click:Connect(function()
+        callback(b)
+    end)
+
+    return b
+end
+
+local function UpdateButton(button,title,state,locked)
+
+    if locked then
+        button.Text = "🔒 "..title.." [PRO]"
+    else
+        button.Text =
+            title.." ["..(state and "ON" or "OFF").."]"
+    end
+
+end
+
+--========================================================--
+--                    FREE BUTTONS                       --
+--========================================================--
+
+local AntiLagButton =
+    Button("⚡ Anti-Lag [OFF]",function(b)
+
+        local state = ToggleFree("AntiLag")
+
+        UpdateButton(
+            b,
+            "⚡ Anti-Lag",
+            state,
+            false
+        )
+
+    end)
+
+local AntiTextureButton =
+    Button("🧹 Anti-Textura [OFF]",function(b)
+
+        local state =
+            ToggleFree("AntiTexture")
+
+        UpdateButton(
+            b,
+            "🧹 Anti-Textura",
+            state,
+            false
+        )
+
+    end)
+
+local FPSButton =
+    Button("🚀 FPS Boost [OFF]",function(b)
+
+        local state =
+            ToggleFree("FPSBoost")
+
+        UpdateButton(
+            b,
+            "🚀 FPS Boost",
+            state,
+            false
+        )
+
+    end)
+
+local FreezeButton =
+    Button("🧊 Anti-Congelamento [OFF]",function(b)
+
+        local state =
+            ToggleFree("AntiFreeze")
+
+        UpdateButton(
+            b,
+            "🧊 Anti-Congelamento",
+            state,
+            false
+        )
+
+    end)
+
+--========================================================--
+--                      PRO BUTTONS                      --
+--========================================================--
+
+local function ProButton(title,stateName)
+
+    return Button(
+        "🔒 "..title.." [PRO]",
+        function(b)
+
+            if not IsPRO then
+
+                Status.Text =
+                    "🔒 Digite uma Key válida em PRO"
+
+                Status.TextColor3 =
+                    Color3.fromRGB(255,180,80)
+
+                return
+
+            end
+
+            local newState =
+                not PRO.States[stateName]
+
+            PRO.Set(stateName,newState)
+
+            UpdateButton(
+                b,
+                title,
+                newState,
+                false
+            )
+
+            Status.Text =
+                "💎 PRO • "..title..
+                " ["..(newState and "ON" or "OFF").."]"
+
+            Status.TextColor3 =
+                Themes[ThemeIndex].Light
+
+        end
+    )
+
+end
+
+local UltraFPSButton =
+    ProButton(
+        "⚡ Ultra FPS",
+        "UltraFPS"
+    )
+
+local UltraRenderButton =
+    ProButton(
+        "🚀 Ultra Render",
+        "UltraRender"
+    )
+
+local SmartButton =
+    ProButton(
+        "🧠 Smart Boost",
+        "SmartBoost"
+    )
+
+local ParticleButton =
+    ProButton(
+        "✨ Particle Boost",
+        "ParticleBoost"
+    )
+
+local LightingButton =
+    ProButton(
+        "💡 Lighting Boost",
+        "LightingBoost"
+    )
+
+local TerrainButton =
+    ProButton(
+        "🌍 Terrain Boost",
+        "TerrainBoost"
+    )
+
+--========================================================--
+--                         KEY                            --
+--========================================================--
+
+local KeyTitle = Create("TextLabel",{
+
+    Parent = Scroll,
+
+    Size = UDim2.new(1,-8,0,30),
+
+    BackgroundTransparency = 1,
+
+    Text = "🔑 SISTEMA PRO",
+
+    Font = Enum.Font.GothamBold,
+
+    TextSize = 15,
+
+    TextColor3 =
+        Themes[ThemeIndex].Light
+
+})
+
+local KeyInput = Create("TextBox",{
+
+    Parent = Scroll,
+
+    Size = UDim2.new(1,-8,0,42),
+
+    BackgroundColor3 =
+        Color3.fromRGB(8,12,20),
+
+    Text = "",
+
+    PlaceholderText =
+        "Digite sua Key: MT-708090",
+
+    Font = Enum.Font.Gotham,
+
+    TextSize = 13,
+
+    TextColor3 =
+        Color3.fromRGB(235,240,255),
+
+    PlaceholderColor3 =
+        Color3.fromRGB(120,130,145),
+
+    ClearTextOnFocus = false
+
+})
+
+Corner(KeyInput,9)
+
+Stroke(
+    KeyInput,
+    Themes[ThemeIndex].Main,
+    1
+)
+
+local VerifyButton =
+    Button(
+        "🔓 Verificar Key",
+        function()
+
+            local key =
+                KeyInput.Text:gsub("%s+","")
+
+            if VALID_KEYS[key] then
+
+                Status.Text =
+                    "⏳ Carregando MT7 PRO..."
+
+                Status.TextColor3 =
+                    Color3.fromRGB(255,200,80)
+
+                if LoadPRO() then
+
+                    IsPRO = true
+
+                    Status.Text =
+                        "✅ PRO ATIVADO"
+
+                    Status.TextColor3 =
+                        Color3.fromRGB(80,230,120)
+
+                    UpdateButton(
+                        UltraFPSButton,
+                        "⚡ Ultra FPS",
+                        PRO.States.UltraFPS,
+                        false
+                    )
+
+                    UpdateButton(
+                        UltraRenderButton,
+                        "🚀 Ultra Render",
+                        PRO.States.UltraRender,
+                        false
+                    )
+
+                    UpdateButton(
+                        SmartButton,
+                        "🧠 Smart Boost",
+                        PRO.States.SmartBoost,
+                        false
+                    )
+
+                    UpdateButton(
+                        ParticleButton,
+                        "✨ Particle Boost",
+                        PRO.States.ParticleBoost,
+                        false
+                    )
+
+                    UpdateButton(
+                        LightingButton,
+                        "💡 Lighting Boost",
+                        PRO.States.LightingBoost,
+                        false
+                    )
+
+                    UpdateButton(
+                        TerrainButton,
+                        "🌍 Terrain Boost",
+                        PRO.States.TerrainBoost,
+                        false
+                    )
+
+                else
+
+                    IsPRO = false
+
+                    Status.Text =
+                        "❌ MT7PRO.lua não carregou"
+
+                    Status.TextColor3 =
+                        Color3.fromRGB(255,80,80)
+
+                end
+
+            else
+
+                IsPRO = false
+
+                Status.Text =
+                    "❌ Key inválida"
+
+                Status.TextColor3 =
+                    Color3.fromRGB(255,80,80)
+
+            end
+
+        end
+    )
+
+--========================================================--
+--                    FPS SETTINGS                       --
+--========================================================--
+
+local FPSTitle = Create("TextLabel",{
+
+    Parent = Scroll,
+
+    Size = UDim2.new(1,-8,0,30),
+
+    BackgroundTransparency = 1,
+
+    Text = "📊 FPS",
+
+    Font = Enum.Font.GothamBold,
+
+    TextSize = 15,
+
+    TextColor3 =
+        Themes[ThemeIndex].Light
+
+})
+
+local FPSValues = {
+    30,40,50,60,75,90,120
+}
+
+for _,fps in ipairs(FPSValues) do
+
+    Button(
+        "🎮 "..fps.." FPS",
+        function()
+
+            CurrentFPS = fps
+
+            pcall(function()
+
+                if setfpscap then
+                    setfpscap(fps)
+                end
+
+            end)
+
+            Status.Text =
+                "📊 FPS máximo: "..fps
+
+        end
+    )
+
+end
+
+Button(
+    "♾️ FPS Ilimitado",
+    function()
+
+        CurrentFPS = 9--========================================================--
 --                    MT7 HUB V2.1                       --
 --             PERFORMANCE + CUSTOM UI                  --
 --========================================================--
