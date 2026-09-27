@@ -667,4 +667,338 @@ local function unlockPro()
         ProUnlocked = true
         Status.Text = "✅ PRO desbloqueado"
         Status.TextColor3 = Color3.fromRGB(170, 255, 190)
-     
+        UnlockButton.Text = "✅ PRO ATIVADO"
+
+        for name, button in pairs(ProButtons) do
+            setButtonState(button, ProState[name], false)
+        end
+
+        task.spawn(playEclipse)
+    else
+        Status.Text = "❌ Key inválida"
+        Status.TextColor3 = Color3.fromRGB(255, 130, 130)
+    end
+end
+
+UnlockButton.MouseButton1Click:Connect(unlockPro)     
+--========================================================--
+--                      SETTINGS BAR                     --
+--========================================================--
+
+local SettingsBar = Instance.new("Frame")
+SettingsBar.Size = UDim2.new(1, -18, 0, 42)
+SettingsBar.Position = UDim2.new(0, 9, 1, -48)
+SettingsBar.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+SettingsBar.BorderSizePixel = 0
+SettingsBar.Parent = Main
+
+local SC = Instance.new("UICorner")
+SC.CornerRadius = UDim.new(0, 10)
+SC.Parent = SettingsBar
+
+local function smallButton(text, x)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0, 90, 0, 30)
+    b.Position = UDim2.new(0, x, 0.5, -15)
+    b.BackgroundColor3 = Color3.fromRGB(25, 25, 34)
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(225, 225, 235)
+    b.Font = Enum.Font.GothamSemibold
+    b.TextSize = 10
+    b.BorderSizePixel = 0
+    b.Parent = SettingsBar
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 7)
+    c.Parent = b
+    return b
+end
+
+local MoonButton = smallButton("🌙 Moon ON", 5)
+local MonitorButton = smallButton("📊 Monitor", 100)
+local FPSCapButton = smallButton("⚡ FPS 60", 195)
+local CloseButton = smallButton("✖ Fechar", 290)
+
+MoonButton.MouseButton1Click:Connect(function()
+    MoonEnabled = not MoonEnabled
+    MoonButton.Text = MoonEnabled and "🌙 Moon ON" or "🌑 Moon OFF"
+end)
+
+MonitorButton.MouseButton1Click:Connect(function()
+    MonitorEnabled = not MonitorEnabled
+    Monitor.Visible = MonitorEnabled
+end)
+
+local capValues = {60, 75, 90, 120, 0}
+local capIndex = 1
+
+FPSCapButton.MouseButton1Click:Connect(function()
+    capIndex = capIndex % #capValues + 1
+
+    local cap = capValues[capIndex]
+
+    if type(setfpscap) == "function" then
+        pcall(function()
+            setfpscap(cap == 0 and 999 or cap)
+        end)
+    end
+
+    FPSCapButton.Text =
+        cap == 0 and "⚡ FPS MAX" or ("⚡ FPS " .. cap)
+end)
+
+--========================================================--
+--                    DRAG MAIN WINDOW                   --
+--========================================================--
+
+local function makeDraggable(frame, handle)
+    local dragging = false
+    local dragStart
+    local startPos
+
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if not dragging then
+            return
+        end
+
+        if input.UserInputType ~= Enum.UserInputType.MouseMovement
+            and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+
+        local delta = input.Position - dragStart
+
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end)
+end
+
+makeDraggable(Main, Header)
+
+--========================================================--
+--                 FLOATING BUTTON                      --
+--========================================================--
+
+local FloatButton = Instance.new("TextButton")
+FloatButton.Name = "MT7FloatingButton"
+FloatButton.Size = UDim2.new(0, 58, 0, 58)
+FloatButton.Position = UDim2.new(0.82, 0, 0.70, 0)
+FloatButton.BackgroundColor3 = Color3.fromRGB(18, 18, 25)
+FloatButton.Text = "🌙"
+FloatButton.TextSize = 25
+FloatButton.TextColor3 = Color3.fromRGB(235, 225, 255)
+FloatButton.BorderSizePixel = 0
+FloatButton.ZIndex = 100
+FloatButton.Parent = Gui
+
+local FBC = Instance.new("UICorner")
+FBC.CornerRadius = UDim.new(1, 0)
+FBC.Parent = FloatButton
+
+local FBS = Instance.new("UIStroke")
+FBS.Color = Color3.fromRGB(125, 70, 255)
+FBS.Thickness = 2
+FBS.Parent = FloatButton
+FloatButton.MouseButton1Click:Connect(function()
+    Main.Visible = not Main.Visible
+end)
+
+-- Floating button: touch/mouse draggable
+local floatDragging = false
+local floatMoved = false
+local floatStart
+local floatStartPos
+
+FloatButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
+        floatDragging = true
+        floatMoved = false
+        floatStart = input.Position
+        floatStartPos = FloatButton.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                floatDragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if not floatDragging then return end
+    if input.UserInputType ~= Enum.UserInputType.MouseMovement
+        and input.UserInputType ~= Enum.UserInputType.Touch then return end
+
+    local delta = input.Position - floatStart
+
+    if math.abs(delta.X) > 6 or math.abs(delta.Y) > 6 then
+        floatMoved = true
+    end
+
+    FloatButton.Position = UDim2.new(
+        floatStartPos.X.Scale,
+        floatStartPos.X.Offset + delta.X,
+        floatStartPos.Y.Scale,
+        floatStartPos.Y.Offset + delta.Y
+    )
+end)
+
+--========================================================--
+--                        CLOSE                          --
+--========================================================--
+
+CloseButton.MouseButton1Click:Connect(function()
+    Main.Visible = false
+end)
+
+--========================================================--
+--                    FPS / PING MONITOR                --
+--========================================================--
+
+local fpsFrames = 0
+local fpsTime = os.clock()
+
+RunService.RenderStepped:Connect(function()
+    fpsFrames += 1
+    local now = os.clock()
+
+    if now - fpsTime >= 0.75 then
+        local fps = math.floor(fpsFrames / (now - fpsTime) + 0.5)
+        fpsFrames = 0
+        fpsTime = now
+
+        local ping = "--"
+
+        pcall(function()
+            local item = Stats.Network.ServerStatsItem["Data Ping"]
+            ping = tostring(math.floor(item:GetValue()))
+        end)
+
+        if MonitorEnabled then
+            Monitor.Text = "FPS: " .. fps .. " | Ping: " .. ping .. " ms"
+        end
+    end
+end)
+
+--========================================================--
+--                    DYNAMIC BOOST                     --
+--========================================================--
+
+local dynamicTimer = 0
+
+RunService.Heartbeat:Connect(function(dt)
+    if not ProUnlocked or not ProState.DynamicBoost then return end
+
+    dynamicTimer += dt
+
+    if dynamicTimer < 2 then return end
+
+    dynamicTimer = 0
+
+    local fps = 0
+
+    pcall(function()
+        fps = math.floor(1 / math.max(dt, 0.001))
+    end)
+
+    if fps > 0 and fps < 35 then
+        applyFPSBoost(3)
+    end
+end)
+
+--========================================================--
+--                  MOON INDICATOR                      --
+--========================================================--
+
+local Moon = Instance.new("ImageLabel")
+Moon.Size = UDim2.new(0, 32, 0, 32)
+Moon.Position = UDim2.new(0, 8, 0, 10)
+Moon.BackgroundTransparency = 1
+Moon.Image = MOON_IMAGE
+Moon.ImageTransparency = 0.05
+Moon.Parent = Header
+
+Title.Position = UDim2.new(0.08, 0, 0, 0)
+Title.Size = UDim2.new(0.57, 0, 1, 0)
+
+task.spawn(function()
+    while Gui.Parent do
+        task.wait(0.4)
+        Moon.Visible = MoonEnabled
+    end
+end)
+
+--========================================================--
+--                     RESPAWN SAFE                    --
+--========================================================--
+
+Player.CharacterAdded:Connect(function()
+    task.wait(1.5)
+
+    if FreeState.FPSBoost
+        or FreeState.MobileMode
+        or FreeState.PowerSaver then
+
+        applyFPSBoost(2)
+    end
+
+    if ProUnlocked and (
+        ProState.ExtremeFPS
+        or ProState.UltraRender
+        or ProState.SmartBoostPRO
+        or ProState.RenderOptimizer
+        or ProState.BatterySaver
+        or ProState.ThermalGuard
+    ) then
+
+        applyFPSBoost(3)
+    end
+end)
+
+--========================================================--
+--                       STARTUP                        --
+--========================================================--
+
+task.defer(function()
+    task.wait(0.5)
+
+    Main.Visible = true
+
+    print("==============================================")
+    print("🌙 MT7 HUB V3.1 - ECLIPSE")
+    print("🆓 FREE | 🔒 PRO")
+    print("🚀 Strong FPS Booster ready")
+    print("📱 Mobile draggable floating button ready")
+    print("==============================================")
+end)
+
+--========================================================--
+--                        NOTES                        --
+--========================================================--
+
+-- FPS optimization reduces graphical/rendering workload.
+-- It cannot directly control the physical temperature of a phone.
+-- Executor-only functions such as setfpscap are optional.
+-- This hub does not change speed, reach, hitbox, or other gameplay stats.
