@@ -1,4 +1,572 @@
---[[
+--========================================================--
+--                    MT7 HUB V2.1                       --
+--             PERFORMANCE + CUSTOM UI                  --
+--========================================================--
+
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local Player = Players.LocalPlayer
+
+--========================================================--
+--                    KEY SYSTEM                         --
+--========================================================--
+
+local VALID_KEYS = {
+    ["MT-708090"] = true,
+    ["MT-123456"] = true,
+    ["MT-987654"] = true
+}
+
+local PRO = false
+
+--========================================================--
+--                    ESTADOS                            --
+--========================================================--
+
+local States = {
+    AntiLag = false,
+    AntiTexture = false,
+    FPSBoost = false,
+    AntiFreeze = false,
+
+    UltraFPS = false,
+    UltraRender = false,
+    SmartBoost = false,
+    ParticleBoost = false,
+    LightingBoost = false,
+    TerrainBoost = false
+}
+
+--========================================================--
+--                    TEMAS                              --
+--========================================================--
+
+local Themes = {
+    {
+        Name = "Azul",
+        Main = Color3.fromRGB(20, 90, 170),
+        Light = Color3.fromRGB(70, 170, 255)
+    },
+
+    {
+        Name = "Roxo",
+        Main = Color3.fromRGB(100, 45, 180),
+        Light = Color3.fromRGB(180, 100, 255)
+    },
+
+    {
+        Name = "Ciano",
+        Main = Color3.fromRGB(20, 130, 160),
+        Light = Color3.fromRGB(70, 230, 255)
+    },
+
+    {
+        Name = "Verde",
+        Main = Color3.fromRGB(25, 130, 70),
+        Light = Color3.fromRGB(80, 230, 130)
+    },
+
+    {
+        Name = "Vermelho",
+        Main = Color3.fromRGB(150, 35, 45),
+        Light = Color3.fromRGB(255, 80, 90)
+    }
+}
+
+local ThemeIndex = 1
+
+--========================================================--
+--                    FPS                               --
+--========================================================--
+
+local CurrentFPS = 60
+
+--========================================================--
+--                ORIGINAL VALUES                       --
+--========================================================--
+
+local Original = {}
+
+local function SaveOriginal(obj, property)
+    if not Original[obj] then
+        Original[obj] = {}
+    end
+
+    if Original[obj][property] == nil then
+        local success, value = pcall(function()
+            return obj[property]
+        end)
+
+        if success then
+            Original[obj][property] = value
+        end
+    end
+end
+
+local function SetProperty(obj, property, value)
+    SaveOriginal(obj, property)
+
+    pcall(function()
+        obj[property] = value
+    end)
+end
+
+local function RestoreProperty(obj, property)
+    if Original[obj] and Original[obj][property] ~= nil then
+        pcall(function()
+            obj[property] = Original[obj][property]
+        end)
+    end
+end
+
+--========================================================--
+--                REAPLICAR OTIMIZAÇÕES                  --
+--========================================================--
+
+local function RestoreOptimized()
+    for obj, properties in pairs(Original) do
+        if obj and obj.Parent then
+            for property, value in pairs(properties) do
+                pcall(function()
+                    obj[property] = value
+                end)
+            end
+        end
+    end
+end
+
+local function ApplyOptimization()
+
+    -- Primeiro volta ao estado original
+    RestoreOptimized()
+
+    --==================================================
+    -- ANTI-LAG
+    --==================================================
+
+    if States.AntiLag then
+
+        for _, obj in ipairs(game:GetDescendants()) do
+            pcall(function()
+
+                if obj:IsA("ParticleEmitter")
+                or obj:IsA("Trail")
+                or obj:IsA("Beam")
+                or obj:IsA("Smoke")
+                or obj:IsA("Fire")
+                or obj:IsA("Sparkles") then
+
+                    SetProperty(obj, "Enabled", false)
+
+                elseif obj:IsA("PointLight")
+                or obj:IsA("SpotLight")
+                or obj:IsA("SurfaceLight") then
+
+                    SetProperty(obj, "Enabled", false)
+
+                elseif obj:IsA("PostEffect") then
+
+                    SetProperty(obj, "Enabled", false)
+
+                elseif obj:IsA("Highlight") then
+
+                    SetProperty(obj, "Enabled", false)
+
+                end
+
+            end)
+        end
+
+        SetProperty(Lighting, "GlobalShadows", false)
+    end
+
+    --==================================================
+    -- ANTI TEXTURA
+    --==================================================
+
+    if States.AntiTexture then
+
+        for _, obj in ipairs(game:GetDescendants()) do
+            pcall(function()
+
+                if obj:IsA("Decal")
+                or obj:IsA("Texture") then
+
+                    SetProperty(obj, "Transparency", 1)
+
+                elseif obj:IsA("MeshPart") then
+
+                    SetProperty(obj, "TextureID", "")
+
+                elseif obj:IsA("SpecialMesh") then
+
+                    SetProperty(obj, "TextureId", "")
+
+                elseif obj:IsA("SurfaceAppearance") then
+
+                    SetProperty(obj, "Enabled", false)
+
+                end
+
+            end)
+        end
+    end
+
+    --==================================================
+    -- FPS BOOST
+    --==================================================
+
+    if States.FPSBoost then
+
+        SetProperty(Lighting, "GlobalShadows", false)
+
+        for _, obj in ipairs(Lighting:GetChildren()) do
+            pcall(function()
+
+                if obj:IsA("PostEffect") then
+                    SetProperty(obj, "Enabled", false)
+                end
+
+                if obj:IsA("Atmosphere") then
+                    SetProperty(obj, "Density", 0)
+                    SetProperty(obj, "Haze", 0)
+                end
+
+            end)
+        end
+
+        local terrain = workspace:FindFirstChildOfClass("Terrain")
+
+        if terrain then
+            SetProperty(terrain, "Decoration", false)
+        end
+    end
+
+    --==================================================
+    -- ANTI CONGELAMENTO
+    --==================================================
+
+    if States.AntiFreeze then
+
+        for _, obj in ipairs(game:GetDescendants()) do
+            pcall(function()
+
+                if obj:IsA("ParticleEmitter")
+                or obj:IsA("Trail")
+                or obj:IsA("Beam")
+                or obj:IsA("Smoke")
+                or obj:IsA("Fire")
+                or obj:IsA("Sparkles")
+                or obj:IsA("Highlight") then
+
+                    SetProperty(obj, "Enabled", false)
+
+                end
+
+            end)
+        end
+    end
+
+    --==================================================
+    -- PRO: ULTRA FPS
+    --==================================================
+
+    if States.UltraFPS then
+
+        SetProperty(Lighting, "GlobalShadows", false)
+
+        for _, obj in ipairs(Lighting:GetChildren()) do
+            pcall(function()
+
+                if obj:IsA("PostEffect") then
+                    SetProperty(obj, "Enabled", false)
+                end
+
+                if obj:IsA("Atmosphere") then
+                    SetProperty(obj, "Density", 0)
+                    SetProperty(obj, "Haze", 0)
+                    SetProperty(obj, "Glare", 0)
+                end
+
+            end)
+        end
+    end
+
+    --==================================================
+    -- PRO: ULTRA RENDER
+    --==================================================
+
+    if States.UltraRender then
+
+        for _, obj in ipairs(game:GetDescendants()) do
+            pcall(function()
+
+                if obj:IsA("ParticleEmitter")
+                or obj:IsA("Trail")
+                or obj:IsA("Beam")
+                or obj:IsA("Smoke")
+                or obj:IsA("Fire")
+                or obj:IsA("Sparkles")
+                or obj:IsA("Highlight") then
+
+                    SetProperty(obj, "Enabled", false)
+
+                elseif obj:IsA("PointLight")
+                or obj:IsA("SpotLight")
+                or obj:IsA("SurfaceLight") then
+
+                    SetProperty(obj, "Enabled", false)
+
+                end
+
+            end)
+        end
+    end
+
+    --==================================================
+    -- PRO: PARTICLE BOOST
+    --==================================================
+
+    if States.ParticleBoost then
+
+        for _, obj in ipairs(game:GetDescendants()) do
+            pcall(function()
+
+                if obj:IsA("ParticleEmitter") then
+                    SetProperty(obj, "Enabled", false)
+                end
+
+                if obj:IsA("Trail") then
+                    SetProperty(obj, "Enabled", false)
+                end
+
+                if obj:IsA("Beam") then
+                    SetProperty(obj, "Enabled", false)
+                end
+
+            end)
+        end
+    end
+
+    --==================================================
+    -- PRO: LIGHTING BOOST
+    --==================================================
+
+    if States.LightingBoost then
+
+        SetProperty(Lighting, "GlobalShadows", false)
+
+        for _, obj in ipairs(Lighting:GetChildren()) do
+            pcall(function()
+
+                if obj:IsA("PostEffect") then
+                    SetProperty(obj, "Enabled", false)
+                end
+
+                if obj:IsA("Atmosphere") then
+                    SetProperty(obj, "Density", 0)
+                    SetProperty(obj, "Haze", 0)
+                end
+
+            end)
+        end
+    end
+
+    --==================================================
+    -- PRO: TERRAIN BOOST
+    --==================================================
+
+    if States.TerrainBoost then
+
+        local terrain = workspace:FindFirstChildOfClass("Terrain")
+
+        if terrain then
+            SetProperty(terrain, "Decoration", false)
+        end
+    end
+
+    --==================================================
+    -- PRO: SMART BOOST
+    --==================================================
+
+    if States.SmartBoost then
+
+        SetProperty(Lighting, "GlobalShadows", false)
+
+        local terrain = workspace:FindFirstChildOfClass("Terrain")
+
+        if terrain then
+            SetProperty(terrain, "Decoration", false)
+        end
+
+        for _, obj in ipairs(game:GetDescendants()) do
+            pcall(function()
+
+                if obj:IsA("ParticleEmitter")
+                or obj:IsA("Trail")
+                or obj:IsA("Beam")
+                or obj:IsA("Smoke")
+                or obj:IsA("Fire")
+                or obj:IsA("Sparkles")
+                or obj:IsA("Highlight") then
+
+                    SetProperty(obj, "Enabled", false)
+
+                elseif obj:IsA("PostEffect") then
+
+                    SetProperty(obj, "Enabled", false)
+
+                end
+
+            end)
+        end
+    end
+
+    --==================================================
+    -- FPS CAP
+    --==================================================
+
+    pcall(function()
+        if setfpscap then
+            setfpscap(CurrentFPS)
+        end
+    end)
+end
+
+--========================================================--
+--                    GUI                               --
+--========================================================--
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MT7_HUB_V21"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+pcall(function()
+    ScreenGui.Parent = game:GetService("CoreGui")
+end)
+
+if not ScreenGui.Parent then
+    ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+end
+
+--========================================================--
+--                    UI SCALE                           --
+--========================================================--
+
+local UIScale = Instance.new("UIScale")
+UIScale.Scale = 0.85
+UIScale.Parent = ScreenGui
+
+--========================================================--
+--                    FUNÇÕES UI                         --
+--========================================================--
+
+local function Corner(parent, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius)
+    c.Parent = parent
+    return c
+end
+
+local function Stroke(parent, color, thickness)
+    local s = Instance.new("UIStroke")
+    s.Color = color
+    s.Thickness = thickness
+    s.Parent = parent
+    return s
+end
+
+local function Create(class, properties)
+    local object = Instance.new(class)
+
+    for property, value in pairs(properties) do
+        pcall(function()
+            object[property] = value
+        end)
+    end
+
+    return object
+end
+
+--========================================================--
+--                BOTÃO FLUTUANTE                       --
+--========================================================--
+
+local FloatButton = Create("TextButton", {
+    Parent = ScreenGui,
+    Size = UDim2.new(0, 60, 0, 60),
+    Position = UDim2.new(0, 15, 0.5, -30),
+    BackgroundColor3 = Color3.fromRGB(4, 7, 13),
+    BackgroundTransparency = 0.05,
+    Text = "🌙",
+    TextSize = 28,
+    AutoButtonColor = false
+})
+
+Corner(FloatButton, 100)
+
+local FloatStroke = Stroke(
+    FloatButton,
+    Themes[ThemeIndex].Light,
+    2
+)
+
+--========================================================--
+--                    MAIN                               --
+--========================================================--
+
+local Main = Create("Frame", {
+    Parent = ScreenGui,
+    Size = UDim2.new(0, 330, 0, 425),
+    Position = UDim2.new(0.5, -165, 0.5, -212),
+    BackgroundColor3 = Color3.fromRGB(3, 5, 10),
+    BackgroundTransparency = 0.05,
+    Visible = false
+})
+
+Corner(Main, 14)
+
+local MainStroke = Stroke(
+    Main,
+    Themes[ThemeIndex].Main,
+    2
+)
+
+--========================================================--
+--                    HEADER                             --
+--========================================================--
+
+local Header = Create("Frame", {
+    Parent = Main,
+    Size = UDim2.new(1, 0, 0, 75),
+    BackgroundTransparency = 1
+})
+
+local Moon = Create("ImageLabel", {
+    Parent = Header,
+    Size = UDim2.new(0, 58, 0, 58),
+    Position = UDim2.new(0, 8, 0, 8),
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://7072719740",
+    ScaleType = Enum.ScaleType.Fit
+})
+
+local Title = Create("TextLabel", {
+    Parent = Header,
+    Size = UDim2.new(1, -75, 0, 35),
+    Position = UDim2.new(0, 72, 0, 10),
+    BackgroundTransparency = 1,
+    Text = "MT7 HUB",
+    Font = Enum.Font.GothamBold,
+    TextSize = 25,
+    TextXAlignment--[[
     MT7 HUB V2
     Otimização + Personalização
     Free + PRO Key System
