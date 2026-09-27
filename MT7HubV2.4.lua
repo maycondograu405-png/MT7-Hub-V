@@ -7,18 +7,12 @@ repeat task.wait() until game:IsLoaded()
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
 local Player = Players.LocalPlayer
-
 local VERSION = "V2.4"
-
---========================================================--
--- CONFIG
---========================================================--
 
 local PRO_URL =
     "https://raw.githubusercontent.com/maycondograu405-png/MT7-Hub-V/refs/heads/main/MT7PRO.lua"
@@ -40,7 +34,6 @@ local States = {
     FPSBoost = false,
     AntiTexture = false,
     AntiFreeze = false,
-
     LowGraphics = false,
     ParticleReduce = false,
     LightingOptimize = false,
@@ -66,9 +59,7 @@ local Original = {}
 --========================================================--
 
 local function Save(obj, property)
-    if not obj then
-        return
-    end
+    if not obj then return end
 
     if not Original[obj] then
         Original[obj] = {}
@@ -86,9 +77,7 @@ local function Save(obj, property)
 end
 
 local function Set(obj, property, value)
-    if not obj then
-        return
-    end
+    if not obj then return end
 
     Save(obj, property)
 
@@ -134,7 +123,7 @@ local function SetUnlimitedFPS()
 end
 
 --========================================================--
--- FREE OPTIMIZATIONS
+-- FREE OPTIMIZATION
 --========================================================--
 
 local function AntiLag()
@@ -144,7 +133,6 @@ local function AntiLag()
         pcall(function()
             if obj:IsA("PostEffect") then
                 Set(obj, "Enabled", false)
-
             elseif obj:IsA("Atmosphere") then
                 Set(obj, "Density", 0)
                 Set(obj, "Haze", 0)
@@ -184,11 +172,9 @@ local function AntiTexture()
         pcall(function()
             if obj:IsA("Decal")
             or obj:IsA("Texture") then
-
                 Set(obj, "Transparency", 1)
 
             elseif obj:IsA("SurfaceAppearance") then
-
                 Set(obj, "Enabled", false)
             end
         end)
@@ -255,47 +241,19 @@ end
 local function ApplyFree()
     Restore()
 
-    if States.AntiLag then
-        AntiLag()
-    end
-
-    if States.FPSBoost then
-        FPSBoost()
-    end
-
-    if States.AntiTexture then
-        AntiTexture()
-    end
-
-    if States.AntiFreeze then
-        AntiFreeze()
-    end
-
-    if States.LowGraphics then
-        LowGraphics()
-    end
-
-    if States.ParticleReduce then
-        ParticleReduce()
-    end
-
-    if States.LightingOptimize then
-        LightingOptimize()
-    end
-
-    if States.TerrainOptimize then
-        TerrainOptimize()
-    end
-
-    if States.SmartFreeBoost then
-        SmartFreeBoost()
-    end
+    if States.AntiLag then AntiLag() end
+    if States.FPSBoost then FPSBoost() end
+    if States.AntiTexture then AntiTexture() end
+    if States.AntiFreeze then AntiFreeze() end
+    if States.LowGraphics then LowGraphics() end
+    if States.ParticleReduce then ParticleReduce() end
+    if States.LightingOptimize then LightingOptimize() end
+    if States.TerrainOptimize then TerrainOptimize() end
+    if States.SmartFreeBoost then SmartFreeBoost() end
 end
 
 local function ToggleFree(name)
-    if States[name] == nil then
-        return
-    end
+    if States[name] == nil then return end
 
     States[name] = not States[name]
     ApplyFree()
@@ -315,7 +273,7 @@ local function LoadPRO()
         local module = loadstring(source)
 
         if not module then
-            error("PRO module inválido")
+            error("PRO inválido")
         end
 
         return module()
@@ -342,7 +300,6 @@ local function VerifyKey(key)
     end
 
     PRO.Verified = true
-
     return true
 end
 
@@ -375,30 +332,19 @@ local function PROAll(enabled)
 end
 
 --========================================================--
--- REMOVE OLD UI
+-- GUI
 --========================================================--
 
 pcall(function()
     local old = CoreGui:FindFirstChild("MT7_HUB_V24")
-
-    if old then
-        old:Destroy()
-    end
+    if old then old:Destroy() end
 end)
-
---========================================================--
--- SCREEN GUI
---========================================================--
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MT7_HUB_V24"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = CoreGui
-
---========================================================--
--- MAIN FRAME
---========================================================--
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
@@ -422,13 +368,8 @@ local UIScale = Instance.new("UIScale")
 UIScale.Scale = Settings.Scale
 UIScale.Parent = Main
 
---========================================================--
--- HEADER
---========================================================--
-
 local Header = Instance.new("Frame")
 Header.Parent = Main
-Header.Position = UDim2.new(0, 0, 0, 0)
 Header.Size = UDim2.new(1, 0, 0, 62)
 Header.BackgroundTransparency = 1
 
@@ -463,15 +404,10 @@ Close.Text = "×"
 Close.TextColor3 = Color3.fromRGB(255, 255, 255)
 Close.TextSize = 22
 Close.Font = Enum.Font.GothamBold
-Close.AutoButtonColor = true
 
 local CloseCorner = Instance.new("UICorner")
 CloseCorner.CornerRadius = UDim.new(0, 9)
 CloseCorner.Parent = Close
-
---========================================================--
--- STATUS
---========================================================--
 
 local Status = Instance.new("TextLabel")
 Status.Parent = Main
@@ -495,10 +431,6 @@ FPSLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 FPSLabel.TextSize = 12
 FPSLabel.TextXAlignment = Enum.TextXAlignment.Right
 
---========================================================--
--- SCROLLING FRAME
---========================================================--
-
 local Scroll = Instance.new("ScrollingFrame")
 Scroll.Parent = Main
 Scroll.Position = UDim2.new(0, 10, 0, 95)
@@ -507,8 +439,8 @@ Scroll.BackgroundTransparency = 1
 Scroll.BorderSizePixel = 0
 Scroll.ScrollBarThickness = 3
 Scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 120, 255)
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 
 local Layout = Instance.new("UIListLayout")
 Layout.Parent = Scroll
@@ -521,10 +453,6 @@ Padding.PaddingLeft = UDim.new(0, 6)
 Padding.PaddingRight = UDim.new(0, 6)
 Padding.PaddingTop = UDim.new(0, 4)
 Padding.PaddingBottom = UDim.new(0, 10)
-
---========================================================--
--- UI HELPERS
---========================================================--
 
 local Order = 0
 
@@ -559,7 +487,6 @@ local function Button(text, callback, order)
     B.Text = text
     B.TextColor3 = Color3.fromRGB(235, 235, 245)
     B.TextSize = 12
-    B.AutoButtonColor = true
 
     local C = Instance.new("UICorner")
     C.CornerRadius = UDim.new(0, 9)
@@ -602,12 +529,11 @@ local function ToggleButton(label, stateName)
     end)
 
     Update()
-
     return B
 end
 
 --========================================================--
--- FREE SECTION
+-- FREE
 --========================================================--
 
 Section("⚡ FREE OPTIMIZATION")
@@ -623,7 +549,7 @@ ToggleButton("Terrain Optimize", "TerrainOptimize")
 ToggleButton("Smart Free Boost", "SmartFreeBoost")
 
 --========================================================--
--- FPS SECTION
+-- FPS
 --========================================================--
 
 Section("🎯 FPS CAP")
@@ -649,6 +575,7 @@ FPSButton("90", 90)
 FPSButton("120", 120)
 FPSButton("UNLIMITED", 999)
 
+-- FIM DA PARTE 1
 --========================================================--
 -- PRO KEY
 --========================================================--
@@ -673,18 +600,12 @@ local KeyCorner = Instance.new("UICorner")
 KeyCorner.CornerRadius = UDim.new(0, 9)
 KeyCorner.Parent = KeyBox
 
-local Verify = Button("🔑 VERIFICAR CHAVE", function()
+Button("🔑 VERIFICAR CHAVE", function()
     local ok = VerifyKey(KeyBox.Text)
 
     if ok then
         Status.Text = "STATUS: PRO ATIVADO ✓"
         Status.TextColor3 = Color3.fromRGB(100, 255, 150)
-
-        for _, child in ipairs(Scroll:GetChildren()) do
-            if child:IsA("TextButton") and child:GetAttribute("MT7PRO") then
-                child.TextColor3 = Color3.fromRGB(235, 235, 245)
-            end
-        end
     else
         Status.Text = "STATUS: CHAVE INVÁLIDA"
         Status.TextColor3 = Color3.fromRGB(255, 100, 100)
@@ -692,11 +613,13 @@ local Verify = Button("🔑 VERIFICAR CHAVE", function()
 end)
 
 --========================================================--
--- PRO BUTTON
+-- PRO BUTTONS
 --========================================================--
 
 local function PROButton(label, stateName)
-    local B = Button("🔒 " .. label .. "  [PRO]", function()
+    local B
+
+    B = Button("🔒 " .. label .. "  [PRO]", function()
         if not PRO.Verified then
             Status.Text = "STATUS: ATIVE O PRO PRIMEIRO"
             Status.TextColor3 = Color3.fromRGB(255, 190, 80)
@@ -764,7 +687,7 @@ Button("↩ RESTAURAR PRO", function()
 end)
 
 --========================================================--
--- GENERAL
+-- CONTROLES
 --========================================================--
 
 Section("🛠 CONTROLES")
@@ -794,8 +717,282 @@ Button("⚙️ ABRIR SETTINGS", function()
     end
 end)
 
+SettingsFrame = Instance.new("Frame")
+SettingsFrame.Name = "Settings"
+SettingsFrame.Parent = ScreenGui
+SettingsFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+SettingsFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+SettingsFrame.Size = UDim2.new(0, 300, 0, 300)
+SettingsFrame.BackgroundColor3 = Color3.fromRGB(8, 10, 18)
+SettingsFrame.BorderSizePixel = 0
+SettingsFrame.Visible = false
+SettingsFrame.ZIndex = 10
+
+local SettingsCorner = Instance.new("UICorner")
+SettingsCorner.CornerRadius = UDim.new(0, 14)
+SettingsCorner.Parent = SettingsFrame
+
+local SettingsStroke = Instance.new("UIStroke")
+SettingsStroke.Color = Color3.fromRGB(0, 120, 255)
+SettingsStroke.Thickness = 1.5
+SettingsStroke.Parent = SettingsFrame
+
+local ST = Instance.new("TextLabel")
+ST.Parent = SettingsFrame
+ST.BackgroundTransparency = 1
+ST.Position = UDim2.new(0, 18, 0, 12)
+ST.Size = UDim2.new(1, -65, 0, 30)
+ST.Font = Enum.Font.GothamBold
+ST.Text = "⚙️ SETTINGS"
+ST.TextColor3 = Color3.fromRGB(255, 255, 255)
+ST.TextSize = 18
+ST.TextXAlignment = Enum.TextXAlignment.Left
+ST.ZIndex = 11
+
+local SCLOSE = Instance.new("TextButton")
+SCLOSE.Parent = SettingsFrame
+SCLOSE.BackgroundColor3 = Color3.fromRGB(25, 28, 40)
+SCLOSE.Position = UDim2.new(1, -48, 0, 10)
+SCLOSE.Size = UDim2.new(0, 34, 0, 34)
+SCLOSE.Text = "×"
+SCLOSE.TextColor3 = Color3.fromRGB(255, 255, 255)
+SCLOSE.TextSize = 22
+SCLOSE.Font = Enum.Font.GothamBold
+SCLOSE.ZIndex = 11
+
+local SCC = Instance.new("UICorner")
+SCC.CornerRadius = UDim.new(0, 9)
+SCC.Parent = SCLOSE
+
+local SettingsContent = Instance.new("Frame")
+SettingsContent.Parent = SettingsFrame
+SettingsContent.BackgroundTransparency = 1
+SettingsContent.Position = UDim2.new(0, 14, 0, 58)
+SettingsContent.Size = UDim2.new(1, -28, 1, -70)
+SettingsContent.ZIndex = 11
+
+local SLayout = Instance.new("UIListLayout")
+SLayout.Parent = SettingsContent
+SLayout.Padding = UDim.new(0, 8)
+SLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function SettingsButton(text, callback)
+    local B = Instance.new("TextButton")
+    B.Parent = SettingsContent
+    B.Size = UDim2.new(1, 0, 0, 40)
+    B.BackgroundColor3 = Color3.fromRGB(18, 22, 34)
+    B.BorderSizePixel = 0
+    B.Font = Enum.Font.GothamSemibold
+    B.Text = text
+    B.TextColor3 = Color3.fromRGB(235, 235, 245)
+    B.TextSize = 12
+    B.ZIndex = 11
+
+    local C = Instance.new("UICorner")
+    C.CornerRadius = UDim.new(0, 9)
+    C.Parent = B
+
+    B.MouseButton1Click:Connect(function()
+        pcall(callback)
+    end)
+
+    return B
+end
+
+local MoonToggle
+
+MoonToggle = SettingsButton("🌙 MOON: ON", function()
+    Settings.Moon = not Settings.Moon
+
+    if Settings.Moon then
+        MoonToggle.Text = "🌙 MOON: ON"
+        MoonToggle.TextColor3 = Color3.fromRGB(100, 255, 150)
+    else
+        MoonToggle.Text = "🌙 MOON: OFF"
+        MoonToggle.TextColor3 = Color3.fromRGB(235, 235, 245)
+    end
+end)
+
+local ScaleLabel = Instance.new("TextLabel")
+ScaleLabel.Parent = SettingsContent
+ScaleLabel.Size = UDim2.new(1, 0, 0, 25)
+ScaleLabel.BackgroundTransparency = 1
+ScaleLabel.Font = Enum.Font.GothamBold
+ScaleLabel.Text = "UI SCALE"
+ScaleLabel.TextColor3 = Color3.fromRGB(100, 170, 255)
+ScaleLabel.TextSize = 12
+ScaleLabel.ZIndex = 11
+
+local function ScaleButton(label, scale)
+    SettingsButton(label, function()
+        Settings.Scale = scale
+        UIScale.Scale = scale
+        Status.Text = "STATUS: UI " .. label
+    end)
+end
+
+ScaleButton("70%", 0.70)
+ScaleButton("85%", 0.85)
+ScaleButton("100%", 1)
+ScaleButton("115%", 1.15)
+
+-- FIM DA PARTE 2
 --========================================================--
--- SETTINGS WINDOW
+-- SETTINGS CLOSE
 --========================================================--
 
-SettingsFrame = Instance.new("Fr
+SCLOSE.MouseButton1Click:Connect(function()
+    SettingsFrame.Visible = false
+end)
+
+--========================================================--
+-- FLOATING MOON
+--========================================================--
+
+local MoonButtonFloat = Instance.new("ImageButton")
+MoonButtonFloat.Name = "MoonButton"
+MoonButtonFloat.Parent = ScreenGui
+MoonButtonFloat.AnchorPoint = Vector2.new(0.5, 0.5)
+MoonButtonFloat.Position = UDim2.new(0, 55, 0.5, 0)
+MoonButtonFloat.Size = UDim2.new(0, 58, 0, 58)
+MoonButtonFloat.BackgroundColor3 = Color3.fromRGB(8, 10, 18)
+MoonButtonFloat.Image = MOON_IMAGE
+MoonButtonFloat.ImageTransparency = 0
+MoonButtonFloat.ZIndex = 20
+
+local MoonCorner = Instance.new("UICorner")
+MoonCorner.CornerRadius = UDim.new(1, 0)
+MoonCorner.Parent = MoonButtonFloat
+
+local MoonStroke = Instance.new("UIStroke")
+MoonStroke.Color = Color3.fromRGB(0, 120, 255)
+MoonStroke.Thickness = 1.5
+MoonStroke.Parent = MoonButtonFloat
+
+--========================================================--
+-- DRAG SYSTEM
+--========================================================--
+
+local function MakeDraggable(obj)
+    local dragging = false
+    local dragStart
+    local startPos
+
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
+            dragging = true
+            dragStart = input.Position
+            startPos = obj.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if not dragging then
+            return
+        end
+
+        if input.UserInputType ~= Enum.UserInputType.MouseMovement
+        and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+
+        local delta = input.Position - dragStart
+
+        obj.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end)
+end
+
+MakeDraggable(Main)
+MakeDraggable(SettingsFrame)
+MakeDraggable(MoonButtonFloat)
+
+--========================================================--
+-- OPEN / CLOSE
+--========================================================--
+
+local Opened = true
+
+local function OpenMenu()
+    Opened = true
+    Main.Visible = true
+end
+
+local function CloseMenu()
+    Opened = false
+    Main.Visible = false
+    SettingsFrame.Visible = false
+end
+
+Close.MouseButton1Click:Connect(CloseMenu)
+
+MoonButtonFloat.MouseButton1Click:Connect(function()
+    if Opened then
+        CloseMenu()
+    else
+        OpenMenu()
+    end
+end)
+
+--========================================================--
+-- FPS MONITOR
+--========================================================--
+
+local Frames = 0
+local LastTime = os.clock()
+
+RunService.RenderStepped:Connect(function()
+    Frames += 1
+
+    local now = os.clock()
+
+    if now - LastTime >= 1 then
+        local fps = Frames
+
+        Frames = 0
+        LastTime = now
+
+        FPSLabel.Text = "FPS: " .. tostring(fps)
+    end
+end)
+
+--========================================================--
+-- CHARACTER RESPAWN
+--========================================================--
+
+Player.CharacterAdded:Connect(function()
+    task.wait(1)
+
+    pcall(function()
+        ApplyFree()
+    end)
+
+    if PRO.Verified and PRO.Module then
+        pcall(function()
+            PRO.Module.Apply()
+        end)
+    end
+end)
+
+--========================================================--
+-- INITIALIZE
+--========================================================--
+
+SetFPS(60)
+
+Status.Text = "STATUS: MT7 V2.4 READY"
+Status.TextColor3 = Color3.fromRGB(100, 255, 150)
+
+print("🌙 MT7 HUB V2.4 carregado!")
